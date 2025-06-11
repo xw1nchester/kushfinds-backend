@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -12,14 +11,14 @@ import (
 
 type Service struct {
 	repository user.Repository
-	jwtConfig  config.JWT
+	tokenManager tokenManager
 	logger     *zap.Logger
 }
 
-func NewService(repository user.Repository, jwtConfig config.JWT, logger *zap.Logger) Service {
+func NewService(repository user.Repository, tokenManager tokenManager, logger *zap.Logger) Service {
 	return Service{
 		repository: repository,
-		jwtConfig:  jwtConfig,
+		tokenManager:  tokenManager,
 		logger:     logger,
 	}
 }
@@ -42,13 +41,13 @@ func (s *Service) Register(ctx context.Context, dto RegisterRequest) (*AuthRespo
 	}
 
 	// TODO: в дальнейшем убрать хардкод роли
-	createdUser, err := s.repository.Create(ctx, user.User{Email: dto.Email, PasswordHash: passHash, Role: "buyerr"})
+	createdUser, err := s.repository.Create(ctx, user.User{Email: dto.Email, PasswordHash: passHash, Role: "buyer"})
 	if err != nil {
 		s.logger.Error("unexpected error when creating user", zap.Error(err))
 		return nil, errors.New("unexpected error when creating user")
 	}
 
-	token, err := GenerateToken(s.jwtConfig, existingUser.ID)
+	token, err := s.tokenManager.GenerateToken(createdUser.ID)
 	if err != nil {
 		s.logger.Error("unexpected error when generating token", zap.Error(err))
 		return nil, errors.New("unexpected error")
@@ -77,7 +76,7 @@ func (s *Service) Login(ctx context.Context, dto LoginRequest) (*AuthResponse, e
 		return nil, errors.New("invalid credentials")
 	}
 
-	token, err := GenerateToken(s.jwtConfig, existingUser.ID)
+	token, err := s.tokenManager.GenerateToken(existingUser.ID)
 	if err != nil {
 		s.logger.Error("unexpected error when generating token", zap.Error(err))
 		return nil, errors.New("unexpected error")

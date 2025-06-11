@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
-	db "github.com/vetrovegor/kushfinds-backend/internal/user/db/postgresql"
+	userDb "github.com/vetrovegor/kushfinds-backend/internal/user/db/postgresql"
 	"github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
 )
@@ -27,18 +27,21 @@ func main() {
 
 	router := chi.NewRouter()
 
-	router.Use(LoggingMiddleware(log))
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.SetHeader("Content-Type", "application/json"))
+	router.Use(
+		LoggingMiddleware(log),
+		middleware.Recoverer,
+	)
 
 	router.Route("/api", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("pong"))
 		})
 
-		authRepository := db.NewRepository(pgClient, log)
+		authRepository := userDb.NewRepository(pgClient, log)
 
-		authService := auth.NewService(authRepository, cfg.JWT, log)
+		tokenManager := auth.NewTokenManager(cfg.JWT)
+
+		authService := auth.NewService(authRepository, tokenManager, log)
 
 		authHandler := auth.NewHandler(authService, log)
 

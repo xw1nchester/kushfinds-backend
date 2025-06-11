@@ -31,7 +31,8 @@ type HTTPServer struct {
 
 type JWT struct {
 	Secret   string        `yaml:"secret" env-required:"true"`
-	TokenTTL time.Duration `yaml:"token_ttl" env-required:"true"`
+	AccessTokenTTL time.Duration `yaml:"access_token_ttl" env-required:"true"`
+	RefreshTokenTTL time.Duration `yaml:"refresh_token_ttl" env-required:"true"`
 }
 
 func MustLoad() *Config {

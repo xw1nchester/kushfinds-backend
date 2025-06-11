@@ -11,4 +11,5 @@ http_server:
   idle_timeout: 60s
 jwt:
   secret: my-secret
-  token_ttl: 5m
+  access_token_ttl: 5m
+  refresh_token_ttl: 720h

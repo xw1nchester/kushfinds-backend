@@ -1,17 +1,19 @@
 package auth
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
+	"github.com/vetrovegor/kushfinds-backend/internal/lib/api/response"
 	"go.uber.org/zap"
 )
 
 type handler struct {
 	service Service
-	logger *zap.Logger
+	logger  *zap.Logger
 }
 
 func NewHandler(service Service, logger *zap.Logger) handlers.Handler {
@@ -26,81 +28,66 @@ func (h *handler) Register(router chi.Router) {
 		r.Post("/register", h.registerHandler)
 		r.Post("/login", h.loginHandler)
 	})
+
+	router.Group(func(priv chi.Router) {
+		priv.Use(AuthMiddleware)
+
+		priv.Get("/private", func(w http.ResponseWriter, r *http.Request) {
+			h.logger.Info("hello from private route")
+			render.Status(r, 400)
+		})
+	})
 }
 
-// TODO: вовзращать ошибки в более удобном стандартизированном виде (сделать middleware)
 func (h *handler) registerHandler(w http.ResponseWriter, r *http.Request) {
 	var dto RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("failed to decode request body"))
 		return
 	}
 
-	if dto.Email == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("email should not be empty"))
-		return
-	}
-	
-	if dto.Password == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("password should not be empty"))
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
 		return
 	}
 
 	resp, err := h.service.Register(r.Context(), dto)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(err.Error()))
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	w.Write(respBytes)
+	render.JSON(w, r, resp)
 }
 
 func (h *handler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	var dto LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("failed to decode request body"))
 		return
 	}
 
-	if dto.Email == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("email should not be empty"))
-		return
-	}
-	
-	if dto.Password == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("password should not be empty"))
+	if err := validator.New().Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
 		return
 	}
 
 	resp, err := h.service.Login(r.Context(), dto)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(err.Error()))
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	w.Write(respBytes)
+	render.JSON(w, r, resp)
 }
