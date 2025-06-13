@@ -6,18 +6,17 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
-	"github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
 )
 
 type repository struct {
-	// TODO: хранить тут сам pgx
-	client postgresql.Client
+	client *pgxpool.Pool
 	logger *zap.Logger
 }
 
-func NewRepository(client postgresql.Client, logger *zap.Logger) user.Repository {
+func NewRepository(client *pgxpool.Pool, logger *zap.Logger) Repository {
 	return &repository{
 		client: client,
 		logger: logger,
@@ -29,29 +28,28 @@ func (r *repository) logSQLQuery(sql string) {
 }
 
 // Create implements user.Repository.
-func (r *repository) Create(ctx context.Context, userData user.User) (*user.User, error) {
+func (r *repository) Create(ctx context.Context, email string) (int, error) {
 	sql := `
-        INSERT INTO users (email, password_hash, role)
-        VALUES ($1, $2, $3)
-        RETURNING id, email, role
+        INSERT INTO users (email)
+        VALUES ($1)
+        RETURNING id
     `
 
 	r.logSQLQuery(sql)
 
-	// TODO: затестить scany?
-	var createdUser user.User
-	err := r.client.QueryRow(ctx, sql, userData.Email, userData.PasswordHash, userData.Role).Scan(&createdUser.ID, &createdUser.Email, &createdUser.Role)
+	var userId int
+	err := r.client.QueryRow(ctx, sql, email).Scan(&userId)
 	if err != nil {
-		return nil, err
+		return userId, err
 	}
 
-	return &createdUser, nil
+	return userId, nil
 }
 
 // GetByEmail implements user.Repository.
 func (r *repository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	sql := `
-        SELECT id, email, role, password_hash
+        SELECT id, email, username, first_name, last_name, avatar, password_hash, is_verified
         FROM users
 		WHERE email=$1
     `
@@ -59,11 +57,10 @@ func (r *repository) GetByEmail(ctx context.Context, email string) (*user.User, 
 	r.logSQLQuery(sql)
 
 	var existingUser user.User
-	if err := r.client.QueryRow(ctx, sql, email).Scan(&existingUser.ID, &existingUser.Email, &existingUser.Role, &existingUser.PasswordHash); err != nil {
-		// TODO: возвращать кастомную ошибку
+	if err := r.client.QueryRow(ctx, sql, email).Scan(&existingUser.ID, &existingUser.Email, &existingUser.Username, &existingUser.FirstName, &existingUser.LastName, &existingUser.Avatar, &existingUser.PasswordHash, &existingUser.IsVerified); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} 
+			return nil, ErrUserNotFound
+		}
 
 		return nil, err
 	}

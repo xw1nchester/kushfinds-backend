@@ -13,3 +13,8 @@ jwt:
   secret: my-secret
   access_token_ttl: 5m
   refresh_token_ttl: 720h
+smtp:
+  host: smtp.mail.ru
+  port: 465
+  username: your_email@mail.ru
+  password: email_app_password

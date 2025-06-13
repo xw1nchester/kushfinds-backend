@@ -8,8 +8,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
+	"github.com/vetrovegor/kushfinds-backend/internal/code"
+	codeDb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
-	userDb "github.com/vetrovegor/kushfinds-backend/internal/user/db/postgresql"
+	userDB "github.com/vetrovegor/kushfinds-backend/internal/user/db"
+	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	"github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
 )
@@ -37,13 +40,23 @@ func main() {
 			w.Write([]byte("pong"))
 		})
 
-		authRepository := userDb.NewRepository(pgClient, log)
+		codeRepository := codeDb.NewRepository(pgClient, log)
+
+		codeService := code.NewService(codeRepository, log)
+
+		userRepository := userDB.NewRepository(pgClient, log)
+
+		authRepository := authDB.NewRepository(pgClient, log)
 
 		tokenManager := auth.NewTokenManager(cfg.JWT)
 
-		authService := auth.NewService(authRepository, tokenManager, log)
+		mailManager := auth.NewMailManager(cfg.SMTP)
 
-		authHandler := auth.NewHandler(authService, log)
+		authService := auth.NewService(userRepository, authRepository, codeService, tokenManager, mailManager, log)
+
+		authMiddleware := auth.NewAuthMiddleware(log, cfg.JWT.Secret)
+
+		authHandler := auth.NewHandler(authService, authMiddleware, log)
 
 		log.Info("register auth handlers")
 

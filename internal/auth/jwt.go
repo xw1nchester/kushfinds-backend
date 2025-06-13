@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,29 +17,40 @@ func NewTokenManager(jwtConfig config.JWT) tokenManager {
 	}
 }
 
-func (tm *tokenManager) GenerateToken(userID int) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(tm.jwtConfig.AccessTokenTTL).Unix(),
+type CustomClaims struct {
+	jwt.RegisteredClaims
+	UserID int `json:"user_id"`
+}
+
+func (tm tokenManager) GenerateToken(userID int) (string, error) {
+	customClaims := CustomClaims{
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.jwtConfig.AccessTokenTTL)),
+		},
+		userID,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
 
 	return token.SignedString([]byte(tm.jwtConfig.Secret))
 }
 
-func ParseToken(tokenStr string) (int, error) {
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		return []byte("my-secret"), nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+func (tm tokenManager) GetRefreshTokenTTL() time.Duration {
+	return tm.jwtConfig.RefreshTokenTTL
+}
+
+func ParseToken(tokenStr string, secretKey string) (int, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(token *jwt.Token) (any, error) {
+		return []byte(secretKey), nil
+	})
 	if err != nil || !token.Valid {
-		return 0, errors.New("invalid token")
+		return 0, err
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(*CustomClaims)
 	if !ok {
-		return 0, errors.New("invalid claims")
+		return 0, err
 	}
 
-	return int(claims["id"].(float64)), nil
+	return claims.UserID, nil
 }

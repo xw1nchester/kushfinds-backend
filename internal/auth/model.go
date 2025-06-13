@@ -2,9 +2,17 @@ package auth
 
 import "github.com/vetrovegor/kushfinds-backend/internal/user"
 
-type RegisterRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+type RegisterEmailRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type JwtToken struct {
+	AccessToken  string `json:"accessToken"`
+}
+
+type Tokens struct {
+	JwtToken
+	RefreshToken string
 }
 
 type LoginRequest struct {

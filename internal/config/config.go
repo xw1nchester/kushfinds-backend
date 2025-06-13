@@ -12,7 +12,8 @@ type Config struct {
 	Env        string     `yaml:"env" env-default:"prod"`
 	PostgreSQL PostgreSQL `yaml:"postgresql"`
 	HTTPServer `yaml:"http_server"`
-	JWT `yaml:"jwt"`
+	JWT        `yaml:"jwt"`
+	SMTP       `yaml:"smtp"`
 }
 
 type PostgreSQL struct {
@@ -30,9 +31,16 @@ type HTTPServer struct {
 }
 
 type JWT struct {
-	Secret   string        `yaml:"secret" env-required:"true"`
-	AccessTokenTTL time.Duration `yaml:"access_token_ttl" env-required:"true"`
+	Secret          string        `yaml:"secret" env-required:"true"`
+	AccessTokenTTL  time.Duration `yaml:"access_token_ttl" env-required:"true"`
 	RefreshTokenTTL time.Duration `yaml:"refresh_token_ttl" env-required:"true"`
+}
+
+type SMTP struct {
+	Host     string `yaml:"host" env-required:"true"`
+	Port     string `yaml:"port" env-required:"true"`
+	Username string `yaml:"username" env-required:"true"`
+	Password string `yaml:"password" env-required:"true"`
 }
 
 func MustLoad() *Config {
@@ -64,7 +72,7 @@ func MustLoadByPath(configPath string) *Config {
 func fetchConfigPath() string {
 	var res string
 
-	flag.StringVar(&res, "config", "", "path to config file")
+	flag.StringVar(&res, "config", "config/local.yml", "path to config file")
 	flag.Parse()
 
 	if res == "" {
