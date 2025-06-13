@@ -75,6 +75,7 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 			logger.Info("request",
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
+				// zap.String("status", r.Response.Status),
 				zap.String("remote", r.RemoteAddr),
 				zap.Duration("duration", time.Since(start)),
 			)

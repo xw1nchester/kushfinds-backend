@@ -12,6 +12,7 @@ import (
 )
 
 type repository struct {
+	// TODO: хранить тут сам pgx
 	client postgresql.Client
 	logger *zap.Logger
 }
