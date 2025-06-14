@@ -8,7 +8,7 @@ import (
 )
 
 type Response struct {
-	Error  string `json:"errors,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 func Error(message string) Response {

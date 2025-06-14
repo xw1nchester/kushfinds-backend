@@ -19,14 +19,16 @@ const (
 )
 
 var (
+	ErrInternal        = errors.New("internal error when working with confirmation codes")
 	ErrCodeAlreadySent = errors.New("code has already been sent")
-	ErrInternal        = errors.New("unexpected error when working with confirmation codes")
+	ErrCodeNotFound    = errors.New("code not found")
 )
 
 type Service interface {
 	GenerateVerify(ctx context.Context, userID int) (string, error)
 	GenerateRecoveryPassword(ctx context.Context, userID int) (string, error)
 	GenerateChangePassword(ctx context.Context, userID int) (string, error)
+	ValidateVerify(ctx context.Context, code string, userID int) error
 }
 
 type service struct {
@@ -52,12 +54,12 @@ func (s service) generateVerificationCode() (string, error) {
 }
 
 func (s service) generate(ctx context.Context, codeType string, userID int) (string, error) {
-	if err := s.repository.CheckNotExpiryCodeExists(ctx, codeType, userID); err != nil {
+	if err := s.repository.CheckRecentlyCodeExists(ctx, codeType, userID); err != nil {
 		if errors.Is(err, db.ErrCodeAlreadySent) {
 			return "", ErrCodeAlreadySent
 		}
 
-		s.logger.Info("error when check not expiry code exists", zap.Error(err))
+		s.logger.Info("error when check recently code exists", zap.Error(err))
 
 		return "", ErrInternal
 	}
@@ -86,4 +88,23 @@ func (s service) GenerateRecoveryPassword(ctx context.Context, userID int) (stri
 
 func (s service) GenerateChangePassword(ctx context.Context, userID int) (string, error) {
 	return s.generate(ctx, ChangePasswordCodeType, userID)
+}
+
+func (s service) validate(ctx context.Context, code string, codeType string, userID int) error {
+	err := s.repository.CheckNotExpiryCodeExists(ctx, code, codeType, userID)
+	if err != nil {
+		if errors.Is(err, db.ErrCodeNotFound) {
+			return ErrCodeNotFound
+		}
+
+		s.logger.Info("error when check not expiry code exists", zap.Error(err))
+
+		return err
+	}
+
+	return nil
+}
+
+func (s service) ValidateVerify(ctx context.Context, code string, userID int) error {
+	return s.validate(ctx, code, VerifyCodeType, userID)
 }

@@ -8,10 +8,11 @@ import (
 
 var (
 	ErrCodeAlreadySent = errors.New("code has already been sent")
+	ErrCodeNotFound = errors.New("code not found")
 )
 
 type Repository interface {
-	CheckNotExpiryCodeExists(ctx context.Context, codeType string, userID int) error
+	CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) error
 	Create(ctx context.Context, code string, codeType string, userID int, retryDate time.Time, expiryDate time.Time) error
-	GetNotExpiryCode(ctx context.Context, code string, codeType string, userID int) error
+	CheckNotExpiryCodeExists(ctx context.Context, code string, codeType string, userID int) error
 }

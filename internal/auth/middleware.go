@@ -26,6 +26,7 @@ func NewAuthMiddleware(logger *zap.Logger, secretKey string) func(http.Handler) 
 				return
 			}
 
+			// TODO: сделать константу = "user_id" или тип того
 			ctx := context.WithValue(r.Context(), "user_id", userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

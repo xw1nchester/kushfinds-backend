@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -15,17 +16,21 @@ const (
 	RefreshTokenCookieName = "refresh-token"
 )
 
+var (
+	ErrDecodeBody = errors.New("failed to decode request body")
+)
+
 type handler struct {
-	service Service
+	service        Service
 	authMiddleware func(http.Handler) http.Handler
-	logger  *zap.Logger
+	logger         *zap.Logger
 }
 
 func NewHandler(service Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
-		service: service,
+		service:        service,
 		authMiddleware: authMiddleware,
-		logger:  logger,
+		logger:         logger,
 	}
 }
 
@@ -34,9 +39,22 @@ func (h *handler) Register(router chi.Router) {
 		authRouter.Route("/register", func(registerRouter chi.Router) {
 			registerRouter.Post("/email", h.registerEmailHandler)
 			registerRouter.Post("/verify", h.registerVerifyHandler)
-			registerRouter.Post("/profile", h.registerProfileHandler)
-			registerRouter.Post("/password", h.registerPasswordHandler)
+
+			registerRouter.Group(func(privateRegisterRouter chi.Router) {
+				privateRegisterRouter.Use(h.authMiddleware)
+
+				privateRegisterRouter.Patch("/profile", h.registerProfileHandler)
+				privateRegisterRouter.Patch("/password", h.registerPasswordHandler)
+			})
 		})
+		
+		authRouter.Route("/login", func(loginRouter chi.Router) {
+			loginRouter.Post("/email", h.loginEmailHandler)
+			loginRouter.Post("/password", h.loginPasswordHandler)
+		})
+		
+		authRouter.Post("/verify/resend", h.VerifyResendHandler)
+
 		// authRouter.Post("/register", h.registerHandler)
 		// authRouter.Post("/login", h.loginHandler)
 	})
@@ -52,11 +70,11 @@ func (h *handler) Register(router chi.Router) {
 }
 
 func (h *handler) registerEmailHandler(w http.ResponseWriter, r *http.Request) {
-	var dto RegisterEmailRequest
+	var dto EmailRequest
 	err := render.DecodeJSON(r.Body, &dto)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, response.Error("failed to decode request body"))
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
 		return
 	}
 
@@ -68,16 +86,51 @@ func (h *handler) registerEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := h.service.RegisterEmail(r.Context(), dto, r.Header.Get("User-Agent"))
+	err = h.service.RegisterEmail(r.Context(), dto)
+	if err != nil {
+		if errors.Is(err, ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error(ErrInternal.Error()))
+		} else {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+		return
+	}
+}
+
+func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) {
+	var dto CodeRequest
+	err := render.DecodeJSON(r.Body, &dto)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, response.Error(err.Error()))
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
+		return
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
+		return
+	}
+
+	resp, err := h.service.RegisterVerify(r.Context(), dto, r.Header.Get("User-Agent"))
+	if err != nil {
+		if errors.Is(err, ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error(ErrInternal.Error()))
+		} else {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
 		return
 	}
 
 	cookie := &http.Cookie{
 		Name:  RefreshTokenCookieName,
-		Value: tokens.RefreshToken,
+		Value: resp.RefreshToken,
 		// Path:     "/", // Cookie will be valid for all paths
 		// Domain: "localhost", // Cookie will be valid for localhost
 		// Expires:  time.Now().Add(time.Hour), // Expires in 1 hour
@@ -88,18 +141,171 @@ func (h *handler) registerEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, cookie)
 
-	render.JSON(w, r, JwtToken{AccessToken: tokens.AccessToken})
+	render.JSON(w, r, AuthResponse{UserResponse: resp.UserResponse, JwtToken: resp.JwtToken})
 }
 
-func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) {
+	var dto EmailRequest
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
+		return
+	}
 
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
+		return
+	}
+
+	err = h.service.VerifyResend(r.Context(), dto)
+
+	if err != nil {
+		if errors.Is(err, ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error(ErrInternal.Error()))
+		} else {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+		return
+	}
 }
 
 func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request) {
+	var dto ProfileRequest
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
+		return
+	}
 
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
+		return
+	}
+
+	user, err := h.service.SaveProfileInfo(r.Context(), r.Context().Value("user_id").(int), dto)
+	if err != nil {
+		if errors.Is(err, ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error(ErrInternal.Error()))
+		} else {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+		return
+	}
+
+	render.JSON(w, r, user)
 }
 
 func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var dto PasswordRequest
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
+		return
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
+		return
+	}
+
+	err = h.service.SavePassword(r.Context(), r.Context().Value("user_id").(int), dto)
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, response.Error(ErrInternal.Error()))
+	}
+}
+
+func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) {
+	var dto EmailRequest
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
+		return
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
+		return
+	}
+
+	user, err := h.service.GetUserByEmail(r.Context(), dto)
+	if err != nil {
+		if errors.Is(err, ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error(ErrInternal.Error()))
+		} else {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+		return
+	}
+
+	render.JSON(w, r, user)
+}
+
+func (h *handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var dto EmailPasswordRequest
+	err := render.DecodeJSON(r.Body, &dto)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(ErrDecodeBody.Error()))
+		return
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(dto); err != nil {
+		validateErr := err.(validator.ValidationErrors)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ValidationError(validateErr))
+		return
+	}
+
+	resp, err := h.service.Login(r.Context(), dto, r.Header.Get("User-Agent"))
+	if err != nil {
+		if errors.Is(err, ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error(ErrInternal.Error()))
+		} else {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:  RefreshTokenCookieName,
+		Value: resp.RefreshToken,
+		// Path:     "/", // Cookie will be valid for all paths
+		// Domain: "localhost", // Cookie will be valid for localhost
+		// Expires:  time.Now().Add(time.Hour), // Expires in 1 hour
+		// HttpOnly: true, // Prevents JavaScript access
+		// Secure: false, // Set to true for HTTPS
+		// SameSite: http.SameSiteLaxMode, // Recommended for most use cases
+	}
+
+	http.SetCookie(w, cookie)
+
+	render.JSON(w, r, AuthResponse{UserResponse: resp.UserResponse, JwtToken: resp.JwtToken})
 }
 
 // func (h *handler) registerHandler(w http.ResponseWriter, r *http.Request) {
