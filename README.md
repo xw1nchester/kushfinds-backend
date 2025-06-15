@@ -8,10 +8,19 @@ migrate -path ./migrations -database postgres://postgres:postgres@localhost:5432
 
 ---
 
+Создайте файл с конфигурацией (config/local.yml) взяв за основу config/example.yml
+
+---
+
 Запуск приложения (способ 1):  
 go run cmd/kushfinds/main.go  
 (опциональный флаг: -config=config/local.yml)
 
 Запуск приложения (способ 2):  
-export CONFIG_PATH=config/local.yml  
-air
+air  
+(опционально export CONFIG_PATH=config/local.yml)
+
+---
+
+Swagger:  
+http://localhost:8080/swagger/index.html

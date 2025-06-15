@@ -28,11 +28,12 @@ func (r *repository) logSQLQuery(sql string) {
 }
 
 // GenerateChangePassword implements code.Repository.
+// TODO: переписать на bool, error
 func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) error {
 	// TODO: сделать не через count, а обрабатывать ошибку no rows
 	sql := `
         SELECT count(id) FROM codes
-		WHERE type=$1 AND user_id=$2 AND retry_date > NOW()
+		WHERE type=$1 AND user_id=$2 AND retry_date>NOW()
     `
 
 	r.logSQLQuery(sql)
@@ -67,7 +68,7 @@ func (r *repository) Create(ctx context.Context, code string, codeType string, u
 func (r *repository) CheckNotExpiryCodeExists(ctx context.Context, code string, codeType string, userID int) error {
 	sql := `
         SELECT id FROM codes
-		WHERE code=$1 AND type=$2 AND user_id=$3 AND expiry_date > NOW()
+		WHERE code=$1 AND type=$2 AND user_id=$3 AND expiry_date>NOW()
     `
 
 	r.logSQLQuery(sql)

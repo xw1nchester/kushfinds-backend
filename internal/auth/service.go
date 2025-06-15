@@ -28,16 +28,20 @@ var (
 	ErrUserNotVerified       = errors.New("the user has not been verified")
 )
 
+// TODO: разделять
 type Service interface {
 	RegisterEmail(ctx context.Context, dto EmailRequest) error
 	RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error)
 	VerifyResend(ctx context.Context, dto EmailRequest) error
-	SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.User, error)
+	SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*UserResponse, error)
 	SavePassword(ctx context.Context, userID int, dto PasswordRequest) error
 	GetUserByEmail(ctx context.Context, dto EmailRequest) (*UserResponse, error)
 	Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error)
+	Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error)
+	Logout(ctx context.Context, token string) error
 }
 
+// TODO: рефакторить
 type service struct {
 	userRepository userDB.Repository
 	authRepository authDB.Repository
@@ -65,13 +69,27 @@ func NewService(
 	}
 }
 
-func (s service) generateRefreshToken(ctx context.Context, userAgent string, userID int) (string, error) {
-	token := uuid.New().String()
+func (s service) generateTokens(ctx context.Context, userAgent string, userID int) (*Tokens, error) {
+	accessToken, err := s.tokenManager.GenerateToken(userID)
+	if err != nil {
+		s.logger.Error("error when generating jwt token", zap.Error(err))
+
+		return nil, ErrInternal
+	}
+
+	refreshToken := uuid.New().String()
 	expiryDate := time.Now().Add(s.tokenManager.GetRefreshTokenTTL())
 
-	err := s.authRepository.CreateSession(ctx, token, userAgent, userID, expiryDate)
+	err = s.authRepository.CreateSession(ctx, refreshToken, userAgent, userID, expiryDate)
+	if err != nil {
+		s.logger.Error("error when generating refresh token", zap.Error(err))
+		return nil, ErrInternal
+	}
 
-	return token, err
+	return &Tokens{
+		JwtToken:     JwtToken{AccessToken: accessToken},
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 // TODO: нужна транзакция
@@ -140,25 +158,14 @@ func (s service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent 
 		return nil, ErrInternal
 	}
 
-	accessToken, err := s.tokenManager.GenerateToken(verifiedUser.ID)
+	tokens, err := s.generateTokens(ctx, userAgent, verifiedUser.ID)
 	if err != nil {
-		s.logger.Error("error when generating jwt token", zap.Error(err))
-
-		return nil, ErrInternal
-	}
-
-	refreshToken, err := s.generateRefreshToken(ctx, userAgent, verifiedUser.ID)
-	if err != nil {
-		s.logger.Error("error when generating jwt token", zap.Error(err))
 		return nil, ErrInternal
 	}
 
 	return &AuthFullResponse{
 		UserResponse: UserResponse{User: *verifiedUser},
-		Tokens: Tokens{
-			JwtToken:     JwtToken{AccessToken: accessToken},
-			RefreshToken: refreshToken,
-		},
+		Tokens:       *tokens,
 	}, nil
 }
 
@@ -200,7 +207,7 @@ func (s service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 }
 
 // SaveProfileInfo implements Service.
-func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.User, error) {
+func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*UserResponse, error) {
 	existingUser, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -240,7 +247,7 @@ func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileReq
 		return nil, ErrInternal
 	}
 
-	return updatedUser, nil
+	return &UserResponse{User: *updatedUser}, nil
 }
 
 func (s service) SavePassword(ctx context.Context, userID int, dto PasswordRequest) error {
@@ -308,53 +315,39 @@ func (s service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent 
 		return nil, ErrInvalidCredentials
 	}
 
-	accessToken, err := s.tokenManager.GenerateToken(existingUser.ID)
+	tokens, err := s.generateTokens(ctx, userAgent, existingUser.ID)
 	if err != nil {
-		s.logger.Error("error when generating jwt token", zap.Error(err))
-
-		return nil, ErrInternal
-	}
-
-	refreshToken, err := s.generateRefreshToken(ctx, userAgent, existingUser.ID)
-	if err != nil {
-		s.logger.Error("error when generating jwt token", zap.Error(err))
 		return nil, ErrInternal
 	}
 
 	return &AuthFullResponse{
 		UserResponse: UserResponse{User: *existingUser},
-		Tokens: Tokens{
-			JwtToken:     JwtToken{AccessToken: accessToken},
-			RefreshToken: refreshToken,
-		},
+		Tokens:       *tokens,
 	}, nil
 }
 
-// func (s Service) Login(ctx context.Context, dto LoginRequest) (*AuthResponse, error) {
-// 	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
-// 	if err != nil {
-// 		s.logger.Error("internal error when fetching user", zap.Error(err))
-// 		return nil, errors.New("internal error when fetching user")
-// 	}
+func (s service) Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error) {
+	userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
+	if err != nil {
+		if !errors.Is(err, authDB.ErrNotFound) {
+			s.logger.Error("error when deleting refresh token", zap.Error(err))
+		}
+		return nil, err
+	}
 
-// 	if existingUser == nil {
-// 		return nil, errors.New("invalid credentials")
-// 	}
+	tokens, err := s.generateTokens(ctx, userAgent, userID)
+	if err != nil {
+		return nil, err
+	}
 
-// 	s.logger.Info("info", zap.String("email", existingUser.Email), zap.String("pass", string(existingUser.PasswordHash)))
+	return tokens, nil
+}
 
-// 	if err := bcrypt.CompareHashAndPassword(existingUser.PasswordHash, []byte(dto.Password)); err != nil {
-// 		return nil, errors.New("invalid credentials")
-// 	}
+func (s *service) Logout(ctx context.Context, token string) error {
+	_, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
+	if err != nil && !errors.Is(err, authDB.ErrNotFound) {
+		s.logger.Error("error when deleting refresh token", zap.Error(err))
+	}
 
-// 	token, err := s.tokenManager.GenerateToken(existingUser.ID)
-// 	if err != nil {
-// 		s.logger.Error("internal error when generating token", zap.Error(err))
-// 		return nil, errors.New("internal error")
-// 	}
-
-// 	return &AuthResponse{
-// 		User:       *existingUser,
-// 		AcessToken: token,
-// 	}, nil
-// }
+	return err
+}

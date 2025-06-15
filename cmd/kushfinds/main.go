@@ -8,15 +8,28 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
+	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	codeDb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	userDB "github.com/vetrovegor/kushfinds-backend/internal/user/db"
-	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	"github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
+
+	_ "github.com/vetrovegor/kushfinds-backend/docs"
+	"github.com/swaggo/http-swagger/v2"
 )
 
+//	@title			Kushfinds API
+//	@version		1.0
+//	@description	API Server for Kushfinds application
+
+//	@host		localhost:8080
+//	@BasePath	/api
+
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							header
+//	@name						Authorization
 func main() {
 	cfg := config.MustLoad()
 
@@ -34,6 +47,8 @@ func main() {
 		LoggingMiddleware(log),
 		middleware.Recoverer,
 	)
+
+	router.Get("/swagger/*", httpSwagger.Handler())
 
 	router.Route("/api", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +89,7 @@ func main() {
 	log.Info("starting server", zap.String("addr", cfg.Address))
 
 	if err := srv.ListenAndServe(); err != nil {
-		log.Error("Failed to start server")
+		log.Error("failed to start server")
 	}
 }
 

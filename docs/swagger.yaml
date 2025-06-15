@@ -1,0 +1,307 @@
+basePath: /api
+definitions:
+  auth.AuthResponse:
+    properties:
+      accessToken:
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/user.User'
+        description: |-
+          TODO: стоит создать отдельный User в котором будет не вся инфа
+          в user.User убрать json теги
+    type: object
+  auth.CodeRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
+  auth.EmailPasswordRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.EmailRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  auth.JwtToken:
+    properties:
+      accessToken:
+        type: string
+    type: object
+  auth.PasswordRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+    required:
+    - password
+    type: object
+  auth.ProfileRequest:
+    properties:
+      firstName:
+        maxLength: 50
+        minLength: 1
+        type: string
+      lastName:
+        maxLength: 50
+        minLength: 1
+        type: string
+      username:
+        maxLength: 30
+        minLength: 3
+        type: string
+    required:
+    - firstName
+    - lastName
+    - username
+    type: object
+  auth.UserResponse:
+    properties:
+      user:
+        allOf:
+        - $ref: '#/definitions/user.User'
+        description: |-
+          TODO: стоит создать отдельный User в котором будет не вся инфа
+          в user.User убрать json теги
+    type: object
+  response.Response:
+    properties:
+      error:
+        type: string
+    type: object
+  user.User:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      isVerified:
+        type: boolean
+      lastName:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Server for Kushfinds application
+  title: Kushfinds API
+  version: "1.0"
+paths:
+  /auth/login/email:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.EmailRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      tags:
+      - auth
+  /auth/login/password:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.EmailPasswordRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      tags:
+      - auth
+  /auth/logout:
+    get:
+      responses:
+        "200":
+          description: OK
+      tags:
+      - auth
+  /auth/refresh:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.JwtToken'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      tags:
+      - auth
+  /auth/register/email:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.EmailRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      tags:
+      - auth
+  /auth/register/password:
+    patch:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.PasswordRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - auth
+  /auth/register/profile:
+    patch:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ProfileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - auth
+  /auth/register/verify:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.CodeRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      tags:
+      - auth
+  /auth/verify/resend:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.EmailRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      tags:
+      - auth
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
