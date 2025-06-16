@@ -1,16 +1,16 @@
 env: "local" # local, dev, prod
 postgresql:
-  host: 127.0.0.1
+  host: db
   port: 5432
   username: postgres
   password: postgres
-  database: kushfinds
+  database: postgres
 http_server:
-  address: 127.0.0.1:8080
+  address: :8080
   timeout: 4s
   idle_timeout: 60s
 jwt:
-  secret: my-secret
+  secret: $3cr3t
   access_token_ttl: 5m
   refresh_token_ttl: 720h
 smtp:

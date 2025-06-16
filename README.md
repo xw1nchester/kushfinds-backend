@@ -13,12 +13,14 @@ migrate -path ./migrations -database postgres://postgres:postgres@localhost:5432
 ---
 
 Запуск приложения (способ 1):  
-go run cmd/kushfinds/main.go  
-(опциональный флаг: -config=config/local.yml)
+CONFIG_PATH=config/local.yml docker compose up  
 
 Запуск приложения (способ 2):  
+go run cmd/kushfinds/main.go -config=config/local.yml  
+
+Запуск приложения (способ 3):  
+export CONFIG_PATH=config/local.yml  
 air  
-(опционально export CONFIG_PATH=config/local.yml)
 
 ---
 

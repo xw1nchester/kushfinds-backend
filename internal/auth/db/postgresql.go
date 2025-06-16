@@ -55,9 +55,13 @@ func (r repository) DeleteNotExpirySessionByToken(ctx context.Context, token str
 
 	var userID int
 	err := r.client.QueryRow(ctx, sql, token).Scan(&userID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, ErrNotFound
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+
+		return 0, err
 	}
 
-	return userID, err
+	return userID, nil
 }

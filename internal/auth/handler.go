@@ -104,7 +104,7 @@ func (h handler) clearCookie(w http.ResponseWriter) {
 //	@Tags		auth
 //	@Param		request	body	EmailRequest	true	"request body"
 //	@Success	200
-//	@Failure	400,500 {object} response.Response
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/register/email [post]
 func (h handler) registerEmailHandler(w http.ResponseWriter, r *http.Request) {
 	var dto EmailRequest
@@ -133,7 +133,7 @@ func (h handler) registerEmailHandler(w http.ResponseWriter, r *http.Request) {
 //	@Tags		auth
 //	@Param		request	body		CodeRequest	true	"request body"
 //	@Success	200		{object}	AuthResponse
-//	@Failure	400,500 {object} response.Response
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/register/verify [post]
 func (h handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) {
 	var dto CodeRequest
@@ -163,11 +163,11 @@ func (h handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, AuthResponse{UserResponse: resp.UserResponse, JwtToken: resp.JwtToken})
 }
 
-//	@Tags	auth
-//	@Param	request	body	EmailRequest	true	"request body"
+//	@Tags		auth
+//	@Param		request	body	EmailRequest	true	"request body"
 //	@Success	200
-//	@Failure	400,500 {object} response.Response
-//	@Router	/auth/verify/resend [post]
+//	@Failure	400,500	{object}	response.Response
+//	@Router		/auth/verify/resend [post]
 func (h handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) {
 	var dto EmailRequest
 	err := render.DecodeJSON(r.Body, &dto)
@@ -193,11 +193,11 @@ func (h handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// @Security ApiKeyAuth
+//	@Security	ApiKeyAuth
 //	@Tags		auth
 //	@Param		request	body		ProfileRequest	true	"request body"
 //	@Success	200		{object}	UserResponse
-//	@Failure	400,500 {object} response.Response
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/register/profile [patch]
 func (h handler) registerProfileHandler(w http.ResponseWriter, r *http.Request) {
 	var dto ProfileRequest
@@ -225,11 +225,11 @@ func (h handler) registerProfileHandler(w http.ResponseWriter, r *http.Request) 
 	render.JSON(w, r, user)
 }
 
-// @Security ApiKeyAuth
+//	@Security	ApiKeyAuth
 //	@Tags		auth
 //	@Param		request	body	PasswordRequest	true	"request body"
 //	@Success	200
-//	@Failure	400,500 {object} response.Response
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/register/password [patch]
 func (h handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	var dto PasswordRequest
@@ -258,7 +258,7 @@ func (h handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request)
 //	@Tags		auth
 //	@Param		request	body		EmailRequest	true	"request body"
 //	@Success	200		{object}	UserResponse
-//	@Failure	400,500 {object} response.Response
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/login/email [post]
 func (h handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) {
 	var dto EmailRequest
@@ -289,7 +289,7 @@ func (h handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) {
 //	@Tags		auth
 //	@Param		request	body		EmailPasswordRequest	true	"request body"
 //	@Success	200		{object}	AuthResponse
-//	@Failure	400,500 {object} response.Response
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/login/password [post]
 func (h handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	var dto EmailPasswordRequest
@@ -320,8 +320,8 @@ func (h handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 //	@Tags		auth
-//	@Success	200	{object}	JwtToken
-//	@Failure	400,500 {object} response.Response
+//	@Success	200		{object}	JwtToken
+//	@Failure	400,500	{object}	response.Response
 //	@Router		/auth/refresh [get]
 func (h handler) refreshHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(RefreshTokenCookieName)
