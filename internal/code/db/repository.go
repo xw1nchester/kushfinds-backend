@@ -12,7 +12,7 @@ var (
 )
 
 type Repository interface {
-	CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) error
 	Create(ctx context.Context, code string, codeType string, userID int, retryDate time.Time, expiryDate time.Time) error
-	CheckNotExpiryCodeExists(ctx context.Context, code string, codeType string, userID int) error
+	CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) (bool, error)
+	CheckNotExpiryCodeExists(ctx context.Context, code string, codeType string, userID int) (bool, error)
 }

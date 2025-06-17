@@ -1,15 +1,16 @@
 basePath: /api
 definitions:
+  apperror.AppError:
+    properties:
+      message:
+        type: string
+    type: object
   auth.AuthResponse:
     properties:
       accessToken:
         type: string
       user:
-        allOf:
-        - $ref: '#/definitions/user.User'
-        description: |-
-          TODO: стоит создать отдельный User в котором будет не вся инфа
-          в user.User убрать json теги
+        $ref: '#/definitions/auth.User'
     type: object
   auth.CodeRequest:
     properties:
@@ -71,21 +72,7 @@ definitions:
     - lastName
     - username
     type: object
-  auth.UserResponse:
-    properties:
-      user:
-        allOf:
-        - $ref: '#/definitions/user.User'
-        description: |-
-          TODO: стоит создать отдельный User в котором будет не вся инфа
-          в user.User убрать json теги
-    type: object
-  response.Response:
-    properties:
-      error:
-        type: string
-    type: object
-  user.User:
+  auth.User:
     properties:
       avatar:
         type: string
@@ -95,12 +82,19 @@ definitions:
         type: string
       id:
         type: integer
+      isPasswordSet:
+        type: boolean
       isVerified:
         type: boolean
       lastName:
         type: string
       username:
         type: string
+    type: object
+  auth.UserResponse:
+    properties:
+      user:
+        $ref: '#/definitions/auth.User'
     type: object
 host: localhost:8080
 info:
@@ -126,11 +120,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
   /auth/login/password:
@@ -150,11 +144,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
   /auth/logout:
@@ -174,11 +168,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
   /auth/register/email:
@@ -196,11 +190,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
   /auth/register/password:
@@ -218,11 +212,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       security:
       - ApiKeyAuth: []
       tags:
@@ -244,11 +238,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       security:
       - ApiKeyAuth: []
       tags:
@@ -270,11 +264,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
   /auth/verify/resend:
@@ -292,11 +286,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
 securityDefinitions:

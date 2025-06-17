@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
     username VARCHAR(255) NULL,
@@ -9,18 +9,26 @@ CREATE TABLE users (
     is_verified BOOLEAN DEFAULT false NOT NULL
 );
 
-CREATE TYPE code_type AS ENUM ('verification', 'recovery_password', 'change_password');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'code_type') THEN
+        CREATE TYPE code_type AS ENUM ('verification', 'recovery_password', 'change_password');
+    END IF;
+END
+$$;
 
-CREATE TABLE codes (
+CREATE TABLE IF NOT EXISTS codes (
     id SERIAL PRIMARY KEY,
     code VARCHAR(255) NOT NULL,
     type code_type,
-    user_id INTEGER REFERENCES users(id) NOT NULL
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     id SERIAL PRIMARY KEY,
     token VARCHAR(255) NOT NULL,
     user_agent VARCHAR(255) NOT NULL,
-    user_id INTEGER REFERENCES users(id) NOT NULL
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

@@ -43,7 +43,7 @@ func NewService(repository db.Repository, logger *zap.Logger) Service {
 	}
 }
 
-func (s service) generateVerificationCode() (string, error) {
+func (s *service) generateVerificationCode() (string, error) {
 	max := big.NewInt(1000000)
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
@@ -53,15 +53,15 @@ func (s service) generateVerificationCode() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
 
-func (s service) generate(ctx context.Context, codeType string, userID int) (string, error) {
-	if err := s.repository.CheckRecentlyCodeExists(ctx, codeType, userID); err != nil {
-		if errors.Is(err, db.ErrCodeAlreadySent) {
-			return "", ErrCodeAlreadySent
-		}
-
+func (s *service) generate(ctx context.Context, codeType string, userID int) (string, error) {
+	exists, err := s.repository.CheckRecentlyCodeExists(ctx, codeType, userID)
+	if err != nil && !errors.Is(err, db.ErrCodeNotFound) {
 		s.logger.Info("error when check recently code exists", zap.Error(err))
-
 		return "", ErrInternal
+	}
+
+	if exists {
+		return "", ErrCodeAlreadySent
 	}
 
 	code, err := s.generateVerificationCode()
@@ -71,40 +71,38 @@ func (s service) generate(ctx context.Context, codeType string, userID int) (str
 
 	if err := s.repository.Create(ctx, code, VerifyCodeType, userID, time.Now().Add(1*time.Minute), time.Now().Add(5*time.Minute)); err != nil {
 		s.logger.Info("error when code creation", zap.Error(err))
-
 		return "", ErrInternal
 	}
 
 	return code, nil
 }
 
-func (s service) GenerateVerify(ctx context.Context, userID int) (string, error) {
+func (s *service) GenerateVerify(ctx context.Context, userID int) (string, error) {
 	return s.generate(ctx, VerifyCodeType, userID)
 }
 
-func (s service) GenerateRecoveryPassword(ctx context.Context, userID int) (string, error) {
+func (s *service) GenerateRecoveryPassword(ctx context.Context, userID int) (string, error) {
 	return s.generate(ctx, RecoveryPasswordCodeType, userID)
 }
 
-func (s service) GenerateChangePassword(ctx context.Context, userID int) (string, error) {
+func (s *service) GenerateChangePassword(ctx context.Context, userID int) (string, error) {
 	return s.generate(ctx, ChangePasswordCodeType, userID)
 }
 
-func (s service) validate(ctx context.Context, code string, codeType string, userID int) error {
-	err := s.repository.CheckNotExpiryCodeExists(ctx, code, codeType, userID)
-	if err != nil {
-		if errors.Is(err, db.ErrCodeNotFound) {
-			return ErrCodeNotFound
-		}
-
+func (s *service) validate(ctx context.Context, code string, codeType string, userID int) error {
+	exists, err := s.repository.CheckNotExpiryCodeExists(ctx, code, codeType, userID)
+	if err != nil && !errors.Is(err, db.ErrCodeNotFound) {		
 		s.logger.Info("error when check not expiry code exists", zap.Error(err))
-
 		return err
+	}
+	
+	if !exists {
+		return ErrCodeNotFound
 	}
 
 	return nil
 }
 
-func (s service) ValidateVerify(ctx context.Context, code string, userID int) error {
+func (s *service) ValidateVerify(ctx context.Context, code string, userID int) error {
 	return s.validate(ctx, code, VerifyCodeType, userID)
 }

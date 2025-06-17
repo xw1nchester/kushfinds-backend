@@ -17,6 +17,7 @@ func NewMailManager(smtpConfig config.SMTP) mailManager {
 	}
 }
 
+// TODO: возможно стоит принудительно завершать выполнение после 10 сек
 func (m mailManager) SendMail(subject string, body string, to []string) error {
 	auth := smtp.PlainAuth(
 		"",

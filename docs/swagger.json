@@ -35,13 +35,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -73,13 +73,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -112,13 +112,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -147,13 +147,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -187,13 +187,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -230,13 +230,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -268,13 +268,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -303,13 +303,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -317,6 +317,14 @@
         }
     },
     "definitions": {
+        "apperror.AppError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.AuthResponse": {
             "type": "object",
             "properties": {
@@ -324,12 +332,7 @@
                     "type": "string"
                 },
                 "user": {
-                    "description": "TODO: стоит создать отдельный User в котором будет не вся инфа\nв user.User убрать json теги",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.User"
-                        }
-                    ]
+                    "$ref": "#/definitions/auth.User"
                 }
             }
         },
@@ -420,28 +423,7 @@
                 }
             }
         },
-        "auth.UserResponse": {
-            "type": "object",
-            "properties": {
-                "user": {
-                    "description": "TODO: стоит создать отдельный User в котором будет не вся инфа\nв user.User убрать json теги",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.User"
-                        }
-                    ]
-                }
-            }
-        },
-        "response.Response": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.User": {
+        "auth.User": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -456,6 +438,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "isPasswordSet": {
+                    "type": "boolean"
+                },
                 "isVerified": {
                     "type": "boolean"
                 },
@@ -464,6 +449,14 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "auth.UserResponse": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/auth.User"
                 }
             }
         }

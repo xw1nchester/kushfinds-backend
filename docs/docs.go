@@ -41,13 +41,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -79,13 +79,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -118,13 +118,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -153,13 +153,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -193,13 +193,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -236,13 +236,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -274,13 +274,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -309,13 +309,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/apperror.AppError"
                         }
                     }
                 }
@@ -323,6 +323,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "apperror.AppError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.AuthResponse": {
             "type": "object",
             "properties": {
@@ -330,12 +338,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "description": "TODO: стоит создать отдельный User в котором будет не вся инфа\nв user.User убрать json теги",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.User"
-                        }
-                    ]
+                    "$ref": "#/definitions/auth.User"
                 }
             }
         },
@@ -426,28 +429,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.UserResponse": {
-            "type": "object",
-            "properties": {
-                "user": {
-                    "description": "TODO: стоит создать отдельный User в котором будет не вся инфа\nв user.User убрать json теги",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.User"
-                        }
-                    ]
-                }
-            }
-        },
-        "response.Response": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.User": {
+        "auth.User": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -462,6 +444,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "isPasswordSet": {
+                    "type": "boolean"
+                },
                 "isVerified": {
                     "type": "boolean"
                 },
@@ -470,6 +455,14 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "auth.UserResponse": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/auth.User"
                 }
             }
         }

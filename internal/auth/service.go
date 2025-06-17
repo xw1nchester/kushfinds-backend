@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
@@ -16,19 +17,18 @@ import (
 )
 
 var (
-	ErrInternal              = errors.New("internal error")
-	ErrEmailAlreadyExists    = errors.New("the user with this email already exists")
-	ErrUserAlreadyVerified   = errors.New("the user has already been verified")
-	ErrInvalidCredentials    = errors.New("invalid credentials")
-	ErrInvalidCode           = errors.New("invalid code")
-	ErrCodeAlreadySent       = errors.New("code has already been sent")
-	ErrNicknameAlreadySet    = errors.New("the nickname is already set")
-	ErrPasswordAlreadySet    = errors.New("the password is already set")
-	ErrUsernameAlreadyExists = errors.New("the user with this username already exists")
-	ErrUserNotVerified       = errors.New("the user has not been verified")
+	ErrInvalidCredentials    = apperror.NewAppError("invalid credentials")
+	ErrUserAlreadyVerified   = apperror.NewAppError("the user has already been verified")
+	ErrInvalidCode           = apperror.NewAppError("invalid code")
+	ErrEmailAlreadyExists    = apperror.NewAppError("the user with this email already exists")
+	ErrCodeAlreadySent       = apperror.NewAppError("code has already been sent")
+	ErrNicknameAlreadySet    = apperror.NewAppError("the nickname is already set")
+	ErrPasswordAlreadySet    = apperror.NewAppError("the password is already set")
+	ErrUsernameAlreadyExists = apperror.NewAppError("the user with this username already exists")
+	ErrUserNotVerified       = apperror.NewAppError("the user has not been verified")
+	ErrPasswordNotSet        = apperror.NewAppError("the user does not have a password set")
 )
 
-// TODO: разделять
 type Service interface {
 	RegisterEmail(ctx context.Context, dto EmailRequest) error
 	RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error)
@@ -69,12 +69,12 @@ func NewService(
 	}
 }
 
-func (s service) generateTokens(ctx context.Context, userAgent string, userID int) (*Tokens, error) {
+func (s *service) generateTokens(ctx context.Context, userAgent string, userID int) (*Tokens, error) {
 	accessToken, err := s.tokenManager.GenerateToken(userID)
 	if err != nil {
 		s.logger.Error("error when generating jwt token", zap.Error(err))
 
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	refreshToken := uuid.New().String()
@@ -83,7 +83,7 @@ func (s service) generateTokens(ctx context.Context, userAgent string, userID in
 	err = s.authRepository.CreateSession(ctx, refreshToken, userAgent, userID, expiryDate)
 	if err != nil {
 		s.logger.Error("error when generating refresh token", zap.Error(err))
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	return &Tokens{
@@ -93,26 +93,26 @@ func (s service) generateTokens(ctx context.Context, userAgent string, userID in
 }
 
 // TODO: нужна транзакция
-func (s service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
+func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 	_, err := s.userRepository.GetByEmail(ctx, dto.Email)
 	if err != nil && !errors.Is(err, userDB.ErrUserNotFound) {
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return ErrInternal
+		return err
 	}
 
 	if err == nil {
-		return ErrEmailAlreadyExists
+		return apperror.NewAppError("the user with this email already exists")
 	}
 
 	userID, err := s.userRepository.Create(ctx, dto.Email)
 	if err != nil {
 		s.logger.Error("error when creating user", zap.Error(err))
-		return ErrInternal
+		return err
 	}
 
 	generatedCode, err := s.codeService.GenerateVerify(ctx, userID)
 	if err != nil {
-		return ErrInternal
+		return err
 	}
 
 	go func() {
@@ -128,7 +128,7 @@ func (s service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 	return nil
 }
 
-func (s service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error) {
+func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error) {
 	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -136,7 +136,8 @@ func (s service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent 
 		}
 
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return nil, ErrInternal
+
+		return nil, err
 	}
 
 	if existingUser.IsVerified {
@@ -155,21 +156,30 @@ func (s service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent 
 	verifiedUser, err := s.userRepository.Verify(ctx, existingUser.ID)
 	if err != nil {
 		s.logger.Error("error when verifying user", zap.Error(err))
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	tokens, err := s.generateTokens(ctx, userAgent, verifiedUser.ID)
 	if err != nil {
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	return &AuthFullResponse{
-		UserResponse: UserResponse{User: *verifiedUser},
-		Tokens:       *tokens,
+		UserResponse: UserResponse{User: User{
+			ID:            verifiedUser.ID,
+			Email:         verifiedUser.Email,
+			Username:      verifiedUser.Username,
+			FirstName:     verifiedUser.FirstName,
+			LastName:      verifiedUser.LastName,
+			Avatar:        verifiedUser.Avatar,
+			IsVerified:    verifiedUser.IsVerified,
+			IsPasswordSet: verifiedUser.PasswordHash != nil,
+		}},
+		Tokens: *tokens,
 	}, nil
 }
 
-func (s service) VerifyResend(ctx context.Context, dto EmailRequest) error {
+func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -177,7 +187,7 @@ func (s service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 		}
 
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return ErrInternal
+		return err
 	}
 
 	if existingUser.IsVerified {
@@ -190,7 +200,7 @@ func (s service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 			return ErrCodeAlreadySent
 		}
 
-		return ErrInternal
+		return err
 	}
 
 	go func() {
@@ -207,7 +217,7 @@ func (s service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 }
 
 // SaveProfileInfo implements Service.
-func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*UserResponse, error) {
+func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*UserResponse, error) {
 	existingUser, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -215,7 +225,7 @@ func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileReq
 		}
 
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	if existingUser.Username != nil {
@@ -226,7 +236,7 @@ func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileReq
 	if err != nil && !errors.Is(err, userDB.ErrUserNotFound) {
 		s.logger.Error("error when fetching user by username", zap.Error(err))
 
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	if !usernameIsAvailable {
@@ -244,13 +254,22 @@ func (s service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileReq
 	)
 	if err != nil {
 		s.logger.Error("error when updating user profile", zap.Error(err))
-		return nil, ErrInternal
+		return nil, err
 	}
 
-	return &UserResponse{User: *updatedUser}, nil
+	return &UserResponse{User: User{
+		ID:            updatedUser.ID,
+		Email:         updatedUser.Email,
+		Username:      updatedUser.Username,
+		FirstName:     updatedUser.FirstName,
+		LastName:      updatedUser.LastName,
+		Avatar:        updatedUser.Avatar,
+		IsVerified:    updatedUser.IsVerified,
+		IsPasswordSet: updatedUser.PasswordHash != nil,
+	}}, nil
 }
 
-func (s service) SavePassword(ctx context.Context, userID int, dto PasswordRequest) error {
+func (s *service) SavePassword(ctx context.Context, userID int, dto PasswordRequest) error {
 	existingUser, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -258,7 +277,7 @@ func (s service) SavePassword(ctx context.Context, userID int, dto PasswordReque
 		}
 
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return ErrInternal
+		return err
 	}
 
 	if existingUser.PasswordHash != nil {
@@ -268,19 +287,19 @@ func (s service) SavePassword(ctx context.Context, userID int, dto PasswordReque
 	passHash, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
 		s.logger.Error("error when hashing password", zap.Error(err))
-		return ErrInternal
+		return err
 	}
 
 	err = s.userRepository.SetPassword(ctx, userID, passHash)
 	if err != nil {
 		s.logger.Error("error when set user password", zap.Error(err))
-		return ErrInternal
+		return err
 	}
 
 	return nil
 }
 
-func (s service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*UserResponse, error) {
+func (s *service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*UserResponse, error) {
 	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -288,13 +307,22 @@ func (s service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*UserRes
 		}
 
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return nil, ErrInternal
+		return nil, err
 	}
 
-	return &UserResponse{User: *existingUser}, nil
+	return &UserResponse{User: User{
+		ID:            existingUser.ID,
+		Email:         existingUser.Email,
+		Username:      existingUser.Username,
+		FirstName:     existingUser.FirstName,
+		LastName:      existingUser.LastName,
+		Avatar:        existingUser.Avatar,
+		IsVerified:    existingUser.IsVerified,
+		IsPasswordSet: existingUser.PasswordHash != nil,
+	}}, nil
 }
 
-func (s service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error) {
+func (s *service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error) {
 	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, userDB.ErrUserNotFound) {
@@ -302,14 +330,16 @@ func (s service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent 
 		}
 
 		s.logger.Error("error when fetching user", zap.Error(err))
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	if !existingUser.IsVerified {
 		return nil, ErrUserNotVerified
 	}
 
-	// TODO: подумать как обработать если у пользователя не установлен пароль
+	if existingUser.PasswordHash == nil {
+		return nil, ErrPasswordNotSet
+	}
 
 	if err := bcrypt.CompareHashAndPassword(*existingUser.PasswordHash, []byte(dto.Password)); err != nil {
 		return nil, ErrInvalidCredentials
@@ -317,16 +347,25 @@ func (s service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent 
 
 	tokens, err := s.generateTokens(ctx, userAgent, existingUser.ID)
 	if err != nil {
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	return &AuthFullResponse{
-		UserResponse: UserResponse{User: *existingUser},
-		Tokens:       *tokens,
+		UserResponse: UserResponse{User: User{
+			ID:            existingUser.ID,
+			Email:         existingUser.Email,
+			Username:      existingUser.Username,
+			FirstName:     existingUser.FirstName,
+			LastName:      existingUser.LastName,
+			Avatar:        existingUser.Avatar,
+			IsVerified:    existingUser.IsVerified,
+			IsPasswordSet: existingUser.PasswordHash != nil,
+		}},
+		Tokens: *tokens,
 	}, nil
 }
 
-func (s service) Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error) {
+func (s *service) Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error) {
 	userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
 	if err != nil {
 		if !errors.Is(err, authDB.ErrNotFound) {

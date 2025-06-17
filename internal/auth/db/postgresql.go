@@ -27,14 +27,18 @@ func NewRepository(client *pgxpool.Pool, logger *zap.Logger) Repository {
 	}
 }
 
-func (r repository) logSQLQuery(sql string) {
+func (r *repository) logSQLQuery(sql string) {
 	r.logger.Debug("SQL query", zap.String("query", strings.Join(strings.Fields(sql), " ")))
 }
 
-func (r repository) CreateSession(ctx context.Context, token string, userAgent string, userID int, expiryDate time.Time) error {
+func (r *repository) CreateSession(ctx context.Context, token string, userAgent string, userID int, expiryDate time.Time) error {
 	sql := `
         INSERT INTO sessions (token, user_agent, user_id, expiry_date)
-        VALUES ($1, $2, $3, $4)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (user_agent, user_id)
+		DO UPDATE SET
+			token = EXCLUDED.token,
+			expiry_date = EXCLUDED.expiry_date;
     `
 
 	r.logSQLQuery(sql)
@@ -44,7 +48,7 @@ func (r repository) CreateSession(ctx context.Context, token string, userAgent s
 	return err
 }
 
-func (r repository) DeleteNotExpirySessionByToken(ctx context.Context, token string) (int, error) {
+func (r *repository) DeleteNotExpirySessionByToken(ctx context.Context, token string) (int, error) {
 	sql := `
         DELETE FROM sessions
 		WHERE token=$1 AND expiry_date>NOW()

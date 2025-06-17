@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_codes_type_user_id;

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_sessions_user_agent_user_id;

@@ -8,6 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+type UserIDContextKey struct{}
+
 func NewAuthMiddleware(logger *zap.Logger, secretKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +28,7 @@ func NewAuthMiddleware(logger *zap.Logger, secretKey string) func(http.Handler) 
 				return
 			}
 
-			// TODO: сделать константу = "user_id" или тип того
-			ctx := context.WithValue(r.Context(), "user_id", userID)
+			ctx := context.WithValue(r.Context(), UserIDContextKey{}, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
