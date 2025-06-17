@@ -10,7 +10,7 @@ definitions:
       accessToken:
         type: string
       user:
-        $ref: '#/definitions/auth.User'
+        $ref: '#/definitions/user.User'
     type: object
   auth.CodeRequest:
     properties:
@@ -72,7 +72,7 @@ definitions:
     - lastName
     - username
     type: object
-  auth.User:
+  user.User:
     properties:
       avatar:
         type: string
@@ -91,10 +91,10 @@ definitions:
       username:
         type: string
     type: object
-  auth.UserResponse:
+  user.UserResponse:
     properties:
       user:
-        $ref: '#/definitions/auth.User'
+        $ref: '#/definitions/user.User'
     type: object
 host: localhost:8080
 info:
@@ -116,7 +116,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.UserResponse'
+            $ref: '#/definitions/user.UserResponse'
         "400":
           description: Bad Request
           schema:
@@ -234,7 +234,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.UserResponse'
+            $ref: '#/definitions/user.UserResponse'
         "400":
           description: Bad Request
           schema:
@@ -293,6 +293,23 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
+  /user:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - user
 securityDefinitions:
   ApiKeyAuth:
     in: header

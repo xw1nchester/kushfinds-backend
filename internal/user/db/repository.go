@@ -3,8 +3,6 @@ package db
 import (
 	"context"
 	"errors"
-
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
 )
 
 var (
@@ -12,11 +10,11 @@ var (
 )
 
 type Repository interface {
-	GetByID(ctx context.Context, id int) (*user.User, error)
-	GetByEmail(ctx context.Context, email string) (*user.User, error)
+	GetByID(ctx context.Context, id int) (*User, error)
+	GetByEmail(ctx context.Context, email string) (*User, error)
 	Create(ctx context.Context, email string) (int, error)
-	Verify(ctx context.Context, id int) (*user.User, error)
+	Verify(ctx context.Context, id int) (*User, error)
 	CheckUsernameIsAvailable(ctx context.Context, username string) (bool, error)
-	SetProfileInfo(ctx context.Context, data user.User) (*user.User, error)
+	SetProfileInfo(ctx context.Context, user User) (*User, error)
 	SetPassword(ctx context.Context, id int, passwordHash []byte) error
 }

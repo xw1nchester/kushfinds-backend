@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/vetrovegor/kushfinds-backend/internal/user"
+
 type EmailRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
@@ -18,28 +20,13 @@ type Tokens struct {
 	RefreshToken string
 }
 
-type User struct {
-	ID            int     `json:"id"`
-	Email         string  `json:"email"`
-	Username      *string `json:"username"`
-	FirstName     *string `json:"firstName"`
-	LastName      *string `json:"lastName"`
-	Avatar        *string `json:"avatar"`
-	IsVerified    bool    `json:"isVerified"`
-	IsPasswordSet bool    `json:"isPasswordSet"`
-}
-
-type UserResponse struct {
-	User User `json:"user"`
-}
-
 type AuthFullResponse struct {
-	UserResponse
+	user.UserResponse
 	Tokens
 }
 
 type AuthResponse struct {
-	UserResponse
+	user.UserResponse
 	JwtToken
 }
 

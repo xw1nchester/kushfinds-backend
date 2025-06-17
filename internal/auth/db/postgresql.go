@@ -32,7 +32,7 @@ func (r *repository) logSQLQuery(sql string) {
 }
 
 func (r *repository) CreateSession(ctx context.Context, token string, userAgent string, userID int, expiryDate time.Time) error {
-	sql := `
+	query := `
         INSERT INTO sessions (token, user_agent, user_id, expiry_date)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (user_agent, user_id)
@@ -41,24 +41,24 @@ func (r *repository) CreateSession(ctx context.Context, token string, userAgent 
 			expiry_date = EXCLUDED.expiry_date;
     `
 
-	r.logSQLQuery(sql)
+	r.logSQLQuery(query)
 
-	_, err := r.client.Exec(ctx, sql, token, userAgent, userID, expiryDate)
+	_, err := r.client.Exec(ctx, query, token, userAgent, userID, expiryDate)
 
 	return err
 }
 
 func (r *repository) DeleteNotExpirySessionByToken(ctx context.Context, token string) (int, error) {
-	sql := `
+	query := `
         DELETE FROM sessions
 		WHERE token=$1 AND expiry_date>NOW()
 		RETURNING user_id
     `
 
-	r.logSQLQuery(sql)
+	r.logSQLQuery(query)
 
 	var userID int
-	err := r.client.QueryRow(ctx, sql, token).Scan(&userID)
+	err := r.client.QueryRow(ctx, query, token).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, ErrNotFound

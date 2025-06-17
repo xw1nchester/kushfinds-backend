@@ -47,7 +47,7 @@ func (s *service) generateVerificationCode() (string, error) {
 	max := big.NewInt(1000000)
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
-		s.logger.Error("error when confirmation code", zap.Error(err))
+		s.logger.Error("unexpected error when confirmation code", zap.Error(err))
 		return "", err
 	}
 	return fmt.Sprintf("%06d", n.Int64()), nil

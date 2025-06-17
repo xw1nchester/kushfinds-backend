@@ -1,23 +1,19 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
+	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
 	"go.uber.org/zap"
 )
 
 const (
 	RefreshTokenCookieName = "refresh-token"
-)
-
-var (
-	ErrDecodeBody = errors.New("failed to decode request body")
 )
 
 type handler struct {
@@ -148,7 +144,7 @@ func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) er
 //	@Security	ApiKeyAuth
 //	@Tags		auth
 //	@Param		request	body		ProfileRequest	true	"request body"
-//	@Success	200		{object}	UserResponse
+//	@Success	200		{object}	user.UserResponse
 //	@Failure	400,500	{object}	apperror.AppError
 //	@Router		/auth/register/profile [patch]
 func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request) error {
@@ -161,7 +157,7 @@ func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request)
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
 
 	user, err := h.service.SaveProfileInfo(r.Context(), userID, dto)
 	if err != nil {
@@ -189,14 +185,14 @@ func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
 
 	return h.service.SavePassword(r.Context(), userID, dto)
 }
 
 //	@Tags		auth
 //	@Param		request	body		EmailRequest	true	"request body"
-//	@Success	200		{object}	UserResponse
+//	@Success	200		{object}	user.UserResponse
 //	@Failure	400,500	{object}	apperror.AppError
 //	@Router		/auth/login/email [post]
 func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) error {

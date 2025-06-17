@@ -35,7 +35,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/auth.UserResponse"
+                            "$ref": "#/definitions/user.UserResponse"
                         }
                     },
                     "400": {
@@ -230,7 +230,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/auth.UserResponse"
+                            "$ref": "#/definitions/user.UserResponse"
                         }
                     },
                     "400": {
@@ -320,6 +320,33 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/user": {
+            "get": {
+                "tags": [
+                    "user"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -338,7 +365,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/auth.User"
+                    "$ref": "#/definitions/user.User"
                 }
             }
         },
@@ -429,7 +456,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.User": {
+        "user.User": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -458,11 +485,11 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.UserResponse": {
+        "user.UserResponse": {
             "type": "object",
             "properties": {
                 "user": {
-                    "$ref": "#/definitions/auth.User"
+                    "$ref": "#/definitions/user.User"
                 }
             }
         }

@@ -9,15 +9,17 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
+	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
-	codeDb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
+	codeDB "github.com/vetrovegor/kushfinds-backend/internal/code/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
+	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	userDB "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	"github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
 
-	_ "github.com/vetrovegor/kushfinds-backend/docs"
 	"github.com/swaggo/http-swagger/v2"
+	_ "github.com/vetrovegor/kushfinds-backend/docs"
 )
 
 //	@title			Kushfinds API
@@ -27,9 +29,9 @@ import (
 //	@host		localhost:8080
 //	@BasePath	/api
 
-//	@securityDefinitions.apikey	ApiKeyAuth
-//	@in							header
-//	@name						Authorization
+// @securityDefinitions.apikey	ApiKeyAuth
+// @in							header
+// @name						Authorization
 func main() {
 	cfg := config.MustLoad()
 
@@ -55,27 +57,43 @@ func main() {
 			w.Write([]byte("pong"))
 		})
 
-		codeRepository := codeDb.NewRepository(pgClient, log)
-
-		codeService := code.NewService(codeRepository, log)
+		// TODO: рефакторить
+		authRepository := authDB.NewRepository(pgClient, log)
 
 		userRepository := userDB.NewRepository(pgClient, log)
 
-		authRepository := authDB.NewRepository(pgClient, log)
+		userService := user.NewService(userRepository, log)
 
-		tokenManager := auth.NewTokenManager(cfg.JWT)
+		codeRepository := codeDB.NewRepository(pgClient, log)
+
+		codeService := code.NewService(codeRepository, log)
+
+		tokenManager := jwtauth.NewTokenManager(cfg.JWT)
 
 		mailManager := auth.NewMailManager(cfg.SMTP)
 
-		authService := auth.NewService(userRepository, authRepository, codeService, tokenManager, mailManager, log)
+		authService := auth.NewService(
+			authRepository,
+			userService,
+			codeService,
+			tokenManager,
+			mailManager,
+			log,
+		)
 
-		authMiddleware := auth.NewAuthMiddleware(log, cfg.JWT.Secret)
+		authMiddleware := jwtauth.NewAuthMiddleware(log, cfg.JWT.Secret)
 
 		authHandler := auth.NewHandler(authService, authMiddleware, log)
 
 		log.Info("register auth handlers")
 
 		authHandler.Register(r)
+
+		userHandler := user.NewHandler(userService, authMiddleware, log)
+
+		log.Info("register user handlers")
+
+		userHandler.Register(r)
 	})
 
 	srv := &http.Server{

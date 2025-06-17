@@ -1,4 +1,4 @@
-package auth
+package jwtauth
 
 import (
 	"time"
@@ -6,6 +6,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 )
+
+type TokenManager interface {
+	GenerateToken(userID int) (string, error)
+	GetRefreshTokenTTL() time.Duration 
+}
 
 type tokenManager struct {
 	jwtConfig config.JWT

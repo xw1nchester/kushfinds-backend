@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
+	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
-	userDB "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -33,9 +33,9 @@ type Service interface {
 	RegisterEmail(ctx context.Context, dto EmailRequest) error
 	RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error)
 	VerifyResend(ctx context.Context, dto EmailRequest) error
-	SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*UserResponse, error)
+	SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.UserResponse, error)
 	SavePassword(ctx context.Context, userID int, dto PasswordRequest) error
-	GetUserByEmail(ctx context.Context, dto EmailRequest) (*UserResponse, error)
+	GetUserByEmail(ctx context.Context, dto EmailRequest) (*user.UserResponse, error)
 	Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error)
 	Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error)
 	Logout(ctx context.Context, token string) error
@@ -43,25 +43,25 @@ type Service interface {
 
 // TODO: рефакторить
 type service struct {
-	userRepository userDB.Repository
 	authRepository authDB.Repository
+	userService    user.Service
 	codeService    code.Service
-	tokenManager   tokenManager
+	tokenManager   jwtauth.TokenManager
 	mailManager    mailManager
 	logger         *zap.Logger
 }
 
 func NewService(
-	userRepository userDB.Repository,
 	authRepository authDB.Repository,
+	userService user.Service,
 	codeService code.Service,
-	tokenManager tokenManager,
+	tokenManager jwtauth.TokenManager,
 	mailManager mailManager,
 	logger *zap.Logger,
 ) Service {
 	return &service{
-		userRepository: userRepository,
 		authRepository: authRepository,
+		userService:    userService,
 		codeService:    codeService,
 		tokenManager:   tokenManager,
 		mailManager:    mailManager,
@@ -72,7 +72,7 @@ func NewService(
 func (s *service) generateTokens(ctx context.Context, userAgent string, userID int) (*Tokens, error) {
 	accessToken, err := s.tokenManager.GenerateToken(userID)
 	if err != nil {
-		s.logger.Error("error when generating jwt token", zap.Error(err))
+		s.logger.Error("unexpected error when generating jwt token", zap.Error(err))
 
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (s *service) generateTokens(ctx context.Context, userAgent string, userID i
 
 	err = s.authRepository.CreateSession(ctx, refreshToken, userAgent, userID, expiryDate)
 	if err != nil {
-		s.logger.Error("error when generating refresh token", zap.Error(err))
+		s.logger.Error("unexpected error when generating refresh token", zap.Error(err))
 		return nil, err
 	}
 
@@ -94,9 +94,8 @@ func (s *service) generateTokens(ctx context.Context, userAgent string, userID i
 
 // TODO: нужна транзакция
 func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
-	_, err := s.userRepository.GetByEmail(ctx, dto.Email)
-	if err != nil && !errors.Is(err, userDB.ErrUserNotFound) {
-		s.logger.Error("error when fetching user", zap.Error(err))
+	_, err := s.userService.GetByEmail(ctx, dto.Email)
+	if err != nil && !errors.Is(err, apperror.ErrNotFound) {
 		return err
 	}
 
@@ -104,9 +103,8 @@ func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 		return apperror.NewAppError("the user with this email already exists")
 	}
 
-	userID, err := s.userRepository.Create(ctx, dto.Email)
+	userID, err := s.userService.Create(ctx, dto.Email)
 	if err != nil {
-		s.logger.Error("error when creating user", zap.Error(err))
 		return err
 	}
 
@@ -121,7 +119,7 @@ func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 			fmt.Sprintf("Your registration confirmation code: %s", generatedCode),
 			[]string{dto.Email},
 		); err != nil {
-			s.logger.Error("error when sending email", zap.Error(err))
+			s.logger.Error("unexpected error when sending email", zap.Error(err))
 		}
 	}()
 
@@ -129,13 +127,11 @@ func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 }
 
 func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error) {
-	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
+	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
-		if errors.Is(err, userDB.ErrUserNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return nil, ErrInvalidCredentials
 		}
-
-		s.logger.Error("error when fetching user", zap.Error(err))
 
 		return nil, err
 	}
@@ -153,9 +149,8 @@ func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent
 		return nil, err
 	}
 
-	verifiedUser, err := s.userRepository.Verify(ctx, existingUser.ID)
+	verifiedUser, err := s.userService.Verify(ctx, existingUser.ID)
 	if err != nil {
-		s.logger.Error("error when verifying user", zap.Error(err))
 		return nil, err
 	}
 
@@ -165,28 +160,18 @@ func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent
 	}
 
 	return &AuthFullResponse{
-		UserResponse: UserResponse{User: User{
-			ID:            verifiedUser.ID,
-			Email:         verifiedUser.Email,
-			Username:      verifiedUser.Username,
-			FirstName:     verifiedUser.FirstName,
-			LastName:      verifiedUser.LastName,
-			Avatar:        verifiedUser.Avatar,
-			IsVerified:    verifiedUser.IsVerified,
-			IsPasswordSet: verifiedUser.PasswordHash != nil,
-		}},
+		UserResponse: user.UserResponse{User: *verifiedUser},
 		Tokens: *tokens,
 	}, nil
 }
 
 func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
-	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
+	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
-		if errors.Is(err, userDB.ErrUserNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return ErrInvalidCredentials
 		}
 
-		s.logger.Error("error when fetching user", zap.Error(err))
 		return err
 	}
 
@@ -209,7 +194,7 @@ func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 			fmt.Sprintf("Your registration confirmation code: %s", generatedCode),
 			[]string{dto.Email},
 		); err != nil {
-			s.logger.Error("error when sending email", zap.Error(err))
+			s.logger.Error("unexpected error when sending email", zap.Error(err))
 		}
 	}()
 
@@ -217,14 +202,9 @@ func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 }
 
 // SaveProfileInfo implements Service.
-func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*UserResponse, error) {
-	existingUser, err := s.userRepository.GetByID(ctx, userID)
+func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.UserResponse, error) {
+	existingUser, err := s.userService.GetByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, userDB.ErrUserNotFound) {
-			return nil, ErrInvalidCredentials
-		}
-
-		s.logger.Error("error when fetching user", zap.Error(err))
 		return nil, err
 	}
 
@@ -232,10 +212,8 @@ func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRe
 		return nil, ErrNicknameAlreadySet
 	}
 
-	usernameIsAvailable, err := s.userRepository.CheckUsernameIsAvailable(ctx, dto.Username)
-	if err != nil && !errors.Is(err, userDB.ErrUserNotFound) {
-		s.logger.Error("error when fetching user by username", zap.Error(err))
-
+	usernameIsAvailable, err := s.userService.CheckUsernameIsAvailable(ctx, dto.Username)
+	if err != nil && !errors.Is(err, apperror.ErrNotFound) {
 		return nil, err
 	}
 
@@ -243,9 +221,9 @@ func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRe
 		return nil, ErrUsernameAlreadyExists
 	}
 
-	updatedUser, err := s.userRepository.SetProfileInfo(
+	updatedUser, err := s.userService.SetProfileInfo(
 		ctx,
-		user.User{
+		&user.User{
 			ID:        userID,
 			Username:  &dto.Username,
 			FirstName: &dto.FirstName,
@@ -253,30 +231,15 @@ func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRe
 		},
 	)
 	if err != nil {
-		s.logger.Error("error when updating user profile", zap.Error(err))
 		return nil, err
 	}
 
-	return &UserResponse{User: User{
-		ID:            updatedUser.ID,
-		Email:         updatedUser.Email,
-		Username:      updatedUser.Username,
-		FirstName:     updatedUser.FirstName,
-		LastName:      updatedUser.LastName,
-		Avatar:        updatedUser.Avatar,
-		IsVerified:    updatedUser.IsVerified,
-		IsPasswordSet: updatedUser.PasswordHash != nil,
-	}}, nil
+	return &user.UserResponse{User: *updatedUser}, nil
 }
 
 func (s *service) SavePassword(ctx context.Context, userID int, dto PasswordRequest) error {
-	existingUser, err := s.userRepository.GetByID(ctx, userID)
+	existingUser, err := s.userService.GetByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, userDB.ErrUserNotFound) {
-			return ErrInvalidCredentials
-		}
-
-		s.logger.Error("error when fetching user", zap.Error(err))
 		return err
 	}
 
@@ -286,50 +249,37 @@ func (s *service) SavePassword(ctx context.Context, userID int, dto PasswordRequ
 
 	passHash, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
-		s.logger.Error("error when hashing password", zap.Error(err))
+		s.logger.Error("unexpected error when hashing password", zap.Error(err))
 		return err
 	}
 
-	err = s.userRepository.SetPassword(ctx, userID, passHash)
-	if err != nil {
-		s.logger.Error("error when set user password", zap.Error(err))
+	if err = s.userService.SetPassword(ctx, userID, passHash); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*UserResponse, error) {
-	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
+func (s *service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*user.UserResponse, error) {
+	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
-		if errors.Is(err, userDB.ErrUserNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return nil, ErrInvalidCredentials
 		}
 
-		s.logger.Error("error when fetching user", zap.Error(err))
 		return nil, err
 	}
 
-	return &UserResponse{User: User{
-		ID:            existingUser.ID,
-		Email:         existingUser.Email,
-		Username:      existingUser.Username,
-		FirstName:     existingUser.FirstName,
-		LastName:      existingUser.LastName,
-		Avatar:        existingUser.Avatar,
-		IsVerified:    existingUser.IsVerified,
-		IsPasswordSet: existingUser.PasswordHash != nil,
-	}}, nil
+	return &user.UserResponse{User: *existingUser}, nil
 }
 
 func (s *service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error) {
-	existingUser, err := s.userRepository.GetByEmail(ctx, dto.Email)
+	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
-		if errors.Is(err, userDB.ErrUserNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return nil, ErrInvalidCredentials
 		}
 
-		s.logger.Error("error when fetching user", zap.Error(err))
 		return nil, err
 	}
 
@@ -351,16 +301,7 @@ func (s *service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent
 	}
 
 	return &AuthFullResponse{
-		UserResponse: UserResponse{User: User{
-			ID:            existingUser.ID,
-			Email:         existingUser.Email,
-			Username:      existingUser.Username,
-			FirstName:     existingUser.FirstName,
-			LastName:      existingUser.LastName,
-			Avatar:        existingUser.Avatar,
-			IsVerified:    existingUser.IsVerified,
-			IsPasswordSet: existingUser.PasswordHash != nil,
-		}},
+		UserResponse: user.UserResponse{User: *existingUser},
 		Tokens: *tokens,
 	}, nil
 }
@@ -369,7 +310,7 @@ func (s *service) Refresh(ctx context.Context, token string, userAgent string) (
 	userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
 	if err != nil {
 		if !errors.Is(err, authDB.ErrNotFound) {
-			s.logger.Error("error when deleting refresh token", zap.Error(err))
+			s.logger.Error("unexpected error when deleting refresh token", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -385,7 +326,7 @@ func (s *service) Refresh(ctx context.Context, token string, userAgent string) (
 func (s *service) Logout(ctx context.Context, token string) error {
 	_, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
 	if err != nil && !errors.Is(err, authDB.ErrNotFound) {
-		s.logger.Error("error when deleting refresh token", zap.Error(err))
+		s.logger.Error("unexpected error when deleting refresh token", zap.Error(err))
 	}
 
 	return err

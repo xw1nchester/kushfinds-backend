@@ -29,7 +29,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/auth.UserResponse"
+                            "$ref": "#/definitions/user.UserResponse"
                         }
                     },
                     "400": {
@@ -224,7 +224,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/auth.UserResponse"
+                            "$ref": "#/definitions/user.UserResponse"
                         }
                     },
                     "400": {
@@ -314,6 +314,33 @@
                     }
                 }
             }
+        },
+        "/user": {
+            "get": {
+                "tags": [
+                    "user"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -332,7 +359,7 @@
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/auth.User"
+                    "$ref": "#/definitions/user.User"
                 }
             }
         },
@@ -423,7 +450,7 @@
                 }
             }
         },
-        "auth.User": {
+        "user.User": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -452,11 +479,11 @@
                 }
             }
         },
-        "auth.UserResponse": {
+        "user.UserResponse": {
             "type": "object",
             "properties": {
                 "user": {
-                    "$ref": "#/definitions/auth.User"
+                    "$ref": "#/definitions/user.User"
                 }
             }
         }

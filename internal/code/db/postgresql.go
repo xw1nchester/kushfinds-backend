@@ -29,7 +29,7 @@ func (r *repository) logSQLQuery(sql string) {
 
 // GenerateChangePassword implements code.Repository.
 func (r *repository) Create(ctx context.Context, code string, codeType string, userID int, retryDate time.Time, expiryDate time.Time) error {
-	sql := `
+	query := `
         INSERT INTO codes (code, type, user_id, retry_date, expiry_date)
         VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (type, user_id)
@@ -39,23 +39,23 @@ func (r *repository) Create(ctx context.Context, code string, codeType string, u
 			expiry_date = EXCLUDED.expiry_date;
     `
 
-	r.logSQLQuery(sql)
+	r.logSQLQuery(query)
 
-	_, err := r.client.Exec(ctx, sql, code, codeType, userID, retryDate, expiryDate)
+	_, err := r.client.Exec(ctx, query, code, codeType, userID, retryDate, expiryDate)
 
 	return err
 }
 
 func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) (bool, error) {
-	sql := `
+	query := `
         SELECT id FROM codes
 		WHERE type=$1 AND user_id=$2 AND retry_date>NOW()
     `
 
-	r.logSQLQuery(sql)
+	r.logSQLQuery(query)
 
 	var id int
-	err := r.client.QueryRow(ctx, sql, codeType, userID).Scan(&id)
+	err := r.client.QueryRow(ctx, query, codeType, userID).Scan(&id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, ErrCodeNotFound
@@ -67,15 +67,15 @@ func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType strin
 }
 
 func (r *repository) CheckNotExpiryCodeExists(ctx context.Context, code string, codeType string, userID int) (bool, error) {
-	sql := `
+	query := `
         SELECT id FROM codes
 		WHERE code=$1 AND type=$2 AND user_id=$3 AND expiry_date>NOW()
     `
 
-	r.logSQLQuery(sql)
+	r.logSQLQuery(query)
 
 	var id int
-	err := r.client.QueryRow(ctx, sql, code, codeType, userID).Scan(&id)
+	err := r.client.QueryRow(ctx, query, code, codeType, userID).Scan(&id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, ErrCodeNotFound
