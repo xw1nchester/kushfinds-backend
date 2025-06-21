@@ -10,18 +10,22 @@ import (
 
 type UserIDContextKey struct{}
 
-func NewAuthMiddleware(logger *zap.Logger, secretKey string) func(http.Handler) http.Handler {
+func NewAuthMiddleware(logger *zap.Logger, tokenManager TokenManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			if authHeader == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+			headerParts := strings.Split(authHeader, " ")
+			if len(headerParts) != 2 || headerParts[0] != "Bearer" || headerParts[1] == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 
-			userID, err := ParseToken(tokenStr, secretKey)
+			userID, err := tokenManager.ParseToken(headerParts[1])
 			if err != nil {
 				logger.Warn("error when parsing JWT token", zap.Error(err))
 				w.WriteHeader(http.StatusUnauthorized)
@@ -33,4 +37,3 @@ func NewAuthMiddleware(logger *zap.Logger, secretKey string) func(http.Handler) 
 		})
 	}
 }
-

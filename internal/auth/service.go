@@ -29,6 +29,7 @@ var (
 	ErrPasswordNotSet        = apperror.NewAppError("the user does not have a password set")
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
 type Service interface {
 	RegisterEmail(ctx context.Context, dto EmailRequest) error
 	RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error)

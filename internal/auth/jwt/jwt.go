@@ -7,17 +7,19 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 )
 
+//go:generate mockgen -source=jwt.go -destination=mocks/mock.go
 type TokenManager interface {
 	GenerateToken(userID int) (string, error)
-	GetRefreshTokenTTL() time.Duration 
+	GetRefreshTokenTTL() time.Duration
+	ParseToken(tokenStr string) (int, error)
 }
 
 type tokenManager struct {
 	jwtConfig config.JWT
 }
 
-func NewTokenManager(jwtConfig config.JWT) tokenManager {
-	return tokenManager{
+func NewTokenManager(jwtConfig config.JWT) TokenManager {
+	return &tokenManager{
 		jwtConfig: jwtConfig,
 	}
 }
@@ -27,7 +29,7 @@ type CustomClaims struct {
 	UserID int `json:"user_id"`
 }
 
-func (tm tokenManager) GenerateToken(userID int) (string, error) {
+func (tm *tokenManager) GenerateToken(userID int) (string, error) {
 	customClaims := CustomClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.jwtConfig.AccessTokenTTL)),
@@ -40,13 +42,13 @@ func (tm tokenManager) GenerateToken(userID int) (string, error) {
 	return token.SignedString([]byte(tm.jwtConfig.Secret))
 }
 
-func (tm tokenManager) GetRefreshTokenTTL() time.Duration {
+func (tm *tokenManager) GetRefreshTokenTTL() time.Duration {
 	return tm.jwtConfig.RefreshTokenTTL
 }
 
-func ParseToken(tokenStr string, secretKey string) (int, error) {
+func (tm *tokenManager) ParseToken(tokenStr string) (int, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(token *jwt.Token) (any, error) {
-		return []byte(secretKey), nil
+		return []byte(tm.jwtConfig.Secret), nil
 	})
 	if err != nil || !token.Valid {
 		return 0, err
