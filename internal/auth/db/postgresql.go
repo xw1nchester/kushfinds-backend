@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +44,9 @@ func (r *repository) CreateSession(ctx context.Context, token string, userAgent 
 
 	r.logSQLQuery(query)
 
-	_, err := r.client.Exec(ctx, query, token, userAgent, userID, expiryDate)
+	executor := postgresql.GetExecutor(ctx, r.client)
+
+	_, err := executor.Exec(ctx, query, token, userAgent, userID, expiryDate)
 
 	return err
 }
@@ -57,8 +60,10 @@ func (r *repository) DeleteNotExpirySessionByToken(ctx context.Context, token st
 
 	r.logSQLQuery(query)
 
+	executor := postgresql.GetExecutor(ctx, r.client)
 	var userID int
-	err := r.client.QueryRow(ctx, query, token).Scan(&userID)
+
+	err := executor.QueryRow(ctx, query, token).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, ErrNotFound

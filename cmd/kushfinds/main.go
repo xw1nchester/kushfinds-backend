@@ -16,7 +16,8 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
-	"github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
+	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
+	pgtx "github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 
 	"github.com/swaggo/http-swagger/v2"
@@ -39,7 +40,7 @@ func main() {
 	log, _ := zap.NewDevelopment()
 	defer log.Sync()
 
-	pgClient, err := postgresql.NewClient(context.TODO(), cfg.PostgreSQL)
+	pgClient, err := pgclient.NewClient(context.TODO(), cfg.PostgreSQL)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -73,12 +74,15 @@ func main() {
 
 		mailManager := auth.NewMailManager(cfg.SMTP)
 
+		txManager := pgtx.NewPgManager(pgClient)
+
 		authService := auth.NewService(
 			authRepository,
 			userService,
 			codeService,
 			tokenManager,
 			mailManager,
+			txManager,
 			log,
 		)
 

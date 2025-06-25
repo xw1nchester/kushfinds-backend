@@ -11,6 +11,7 @@ import (
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
+	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -49,6 +50,7 @@ type service struct {
 	codeService    code.Service
 	tokenManager   jwtauth.TokenManager
 	mailManager    mailManager
+	txManager      transactor.Manager
 	logger         *zap.Logger
 }
 
@@ -58,6 +60,7 @@ func NewService(
 	codeService code.Service,
 	tokenManager jwtauth.TokenManager,
 	mailManager mailManager,
+	txManager transactor.Manager,
 	logger *zap.Logger,
 ) Service {
 	return &service{
@@ -66,6 +69,7 @@ func NewService(
 		codeService:    codeService,
 		tokenManager:   tokenManager,
 		mailManager:    mailManager,
+		txManager:      txManager,
 		logger:         logger,
 	}
 }
@@ -93,7 +97,6 @@ func (s *service) generateTokens(ctx context.Context, userAgent string, userID i
 	}, nil
 }
 
-// TODO: нужна транзакция
 func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 	_, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil && !errors.Is(err, apperror.ErrNotFound) {
@@ -104,12 +107,22 @@ func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 		return apperror.NewAppError("the user with this email already exists")
 	}
 
-	userID, err := s.userService.Create(ctx, dto.Email)
-	if err != nil {
-		return err
-	}
+	var generatedCode string
 
-	generatedCode, err := s.codeService.GenerateVerify(ctx, userID)
+	err = s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		userID, err := s.userService.Create(ctx, dto.Email)
+		if err != nil {
+			return err
+		}
+
+		generatedCode, err = s.codeService.GenerateVerify(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
@@ -150,19 +163,30 @@ func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent
 		return nil, err
 	}
 
-	verifiedUser, err := s.userService.Verify(ctx, existingUser.ID)
-	if err != nil {
-		return nil, err
-	}
+	var verifiedUser *user.User
+	var tokens *Tokens
 
-	tokens, err := s.generateTokens(ctx, userAgent, verifiedUser.ID)
+	err = s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		verifiedUser, err = s.userService.Verify(ctx, existingUser.ID)
+		if err != nil {
+			return err
+		}
+
+		tokens, err = s.generateTokens(ctx, userAgent, verifiedUser.ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	return &AuthFullResponse{
 		UserResponse: user.UserResponse{User: *verifiedUser},
-		Tokens: *tokens,
+		Tokens:       *tokens,
 	}, nil
 }
 
@@ -202,7 +226,6 @@ func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 	return nil
 }
 
-// SaveProfileInfo implements Service.
 func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.UserResponse, error) {
 	existingUser, err := s.userService.GetByID(ctx, userID)
 	if err != nil {
@@ -303,20 +326,30 @@ func (s *service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent
 
 	return &AuthFullResponse{
 		UserResponse: user.UserResponse{User: *existingUser},
-		Tokens: *tokens,
+		Tokens:       *tokens,
 	}, nil
 }
 
 func (s *service) Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error) {
-	userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
-	if err != nil {
-		if !errors.Is(err, authDB.ErrNotFound) {
-			s.logger.Error("unexpected error when deleting refresh token", zap.Error(err))
+	var tokens *Tokens
+	
+	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
+		if err != nil {
+			if !errors.Is(err, authDB.ErrNotFound) {
+				s.logger.Error("unexpected error when deleting refresh token", zap.Error(err))
+			}
+			return err
 		}
-		return nil, err
-	}
 
-	tokens, err := s.generateTokens(ctx, userAgent, userID)
+		tokens, err = s.generateTokens(ctx, userAgent, userID)
+		if err != nil {
+			return err
+		}
+
+		return  nil
+	})
+
 	if err != nil {
 		return nil, err
 	}

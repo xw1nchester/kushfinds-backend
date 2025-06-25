@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
 
@@ -93,13 +94,14 @@ func (r *repository) Create(ctx context.Context, email string) (int, error) {
 
 	r.logSQLQuery(query)
 
+	executor := postgresql.GetExecutor(ctx, r.client)
+
 	var id int
-	err := r.client.QueryRow(ctx, query, email).Scan(&id)
-	if err != nil {
-		return id, err
+	if err := executor.QueryRow(ctx, query, email).Scan(&id); err != nil {
+		return 0, err
 	}
 
-	return id, nil
+	return  id, nil
 }
 
 func (r *repository) Verify(ctx context.Context, id int) (*User, error) {
@@ -112,8 +114,10 @@ func (r *repository) Verify(ctx context.Context, id int) (*User, error) {
 
 	r.logSQLQuery(query)
 
+	executor := postgresql.GetExecutor(ctx, r.client)
 	var existingUser User
-	if err := r.client.QueryRow(ctx, query, id).Scan(
+
+	if err := executor.QueryRow(ctx, query, id).Scan(
 		&existingUser.ID,
 		&existingUser.Email,
 		&existingUser.Username,

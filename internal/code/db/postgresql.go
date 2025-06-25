@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
 
@@ -41,9 +42,11 @@ func (r *repository) Create(ctx context.Context, code string, codeType string, u
 
 	r.logSQLQuery(query)
 
-	_, err := r.client.Exec(ctx, query, code, codeType, userID, retryDate, expiryDate)
+	executor := postgresql.GetExecutor(ctx, r.client)
 
-	return err
+	_, err := executor.Exec(ctx, query, code, codeType, userID, retryDate, expiryDate)
+
+	return  err
 }
 
 func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) (bool, error) {
