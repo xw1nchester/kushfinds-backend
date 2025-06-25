@@ -1,0 +1,12 @@
+.vscode
+config
+tests
+tmp
+.air.toml
+.dockerignore
+.env*
+.gitignore
+docker-compose.yml
+Dockerfile
+Makefile
+README.md

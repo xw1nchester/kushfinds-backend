@@ -17,6 +17,8 @@ const (
 	RefreshTokenCookieName = "refresh-token"
 )
 
+var validate = validator.New()
+
 type Handler interface {
 	handlers.Handler
 	RegisterEmailHandler(w http.ResponseWriter, r *http.Request) error
@@ -95,7 +97,7 @@ func (h *handler) RegisterEmailHandler(w http.ResponseWriter, r *http.Request) e
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
@@ -113,7 +115,7 @@ func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) 
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
@@ -140,7 +142,7 @@ func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) er
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
@@ -159,7 +161,7 @@ func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request)
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
@@ -187,7 +189,7 @@ func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
@@ -207,7 +209,7 @@ func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) erro
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
@@ -232,7 +234,7 @@ func (h *handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) e
 		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
 	}
 
-	if err := validator.New().Struct(dto); err != nil {
+	if err := validate.Struct(dto); err != nil {
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
