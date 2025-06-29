@@ -34,9 +34,9 @@ import (
 //	@host		localhost:8080
 //	@BasePath	/api
 
-// @securityDefinitions.apikey	ApiKeyAuth
-// @in							header
-// @name						Authorization
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							header
+//	@name						Authorization
 func main() {
 	cfg := config.MustLoad()
 
@@ -58,9 +58,7 @@ func main() {
 	router.Get("/swagger/*", httpSwagger.Handler())
 
 	router.Route("/api", func(r chi.Router) {
-		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("pong"))
-		})
+		r.Get("/ping", PingHandler)
 
 		// TODO: рефакторить
 		authRepository := authdb.NewRepository(pgClient, log)
@@ -112,7 +110,7 @@ func main() {
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
 
-	go func ()  {
+	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Error("failed to start server")
 		}
@@ -122,7 +120,7 @@ func main() {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
-	<- quit
+	<-quit
 
 	log.Info("server shutting down")
 }
@@ -143,4 +141,12 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 			)
 		})
 	}
+}
+
+//	@Tags		other
+//	@Success	200		{string}	string
+//	@Failure	400,500	{object}	apperror.AppError
+//	@Router		/ping [get]
+func PingHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("pong"))
 }

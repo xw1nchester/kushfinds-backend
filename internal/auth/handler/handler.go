@@ -19,18 +19,13 @@ const (
 
 var validate = validator.New()
 
-type Handler interface {
-	handlers.Handler
-	RegisterEmailHandler(w http.ResponseWriter, r *http.Request) error
-}
-
 type handler struct {
 	service        auth.Service
 	authMiddleware func(http.Handler) http.Handler
 	logger         *zap.Logger
 }
 
-func NewHandler(service auth.Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) Handler {
+func NewHandler(service auth.Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
 		service:        service,
 		authMiddleware: authMiddleware,
@@ -86,15 +81,15 @@ func (h *handler) clearCookie(w http.ResponseWriter) {
 	http.SetCookie(w, cookie)
 }
 
-//	@Tags		auth
-//	@Param		request	body	auth.EmailRequest	true	"request body"
-//	@Success	200
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/register/email [post]
+// @Tags		auth
+// @Param		request	body	auth.EmailRequest	true	"request body"
+// @Success	200
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/register/email [post]
 func (h *handler) RegisterEmailHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -104,15 +99,15 @@ func (h *handler) RegisterEmailHandler(w http.ResponseWriter, r *http.Request) e
 	return h.service.RegisterEmail(r.Context(), dto)
 }
 
-//	@Tags		auth
-//	@Param		request	body		auth.CodeRequest	true	"request body"
-//	@Success	200		{object}	auth.AuthResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/register/verify [post]
+// @Tags		auth
+// @Param		request	body		auth.CodeRequest	true	"request body"
+// @Success	200		{object}	auth.AuthResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/register/verify [post]
 func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.CodeRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -131,15 +126,15 @@ func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) 
 	return nil
 }
 
-//	@Tags		auth
-//	@Param		request	body	auth.EmailRequest	true	"request body"
-//	@Success	200
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/verify/resend [post]
+// @Tags		auth
+// @Param		request	body	auth.EmailRequest	true	"request body"
+// @Success	200
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/verify/resend [post]
 func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -149,16 +144,16 @@ func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) er
 	return h.service.VerifyResend(r.Context(), dto)
 }
 
-//	@Security	ApiKeyAuth
-//	@Tags		auth
-//	@Param		request	body		auth.ProfileRequest	true	"request body"
-//	@Success	200		{object}	user.UserResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/register/profile [patch]
+// @Security	ApiKeyAuth
+// @Tags		auth
+// @Param		request	body		auth.ProfileRequest	true	"request body"
+// @Success	200		{object}	user.UserResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/register/profile [patch]
 func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.ProfileRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -177,16 +172,16 @@ func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
-//	@Security	ApiKeyAuth
-//	@Tags		auth
-//	@Param		request	body	auth.PasswordRequest	true	"request body"
-//	@Success	200
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/register/password [patch]
+// @Security	ApiKeyAuth
+// @Tags		auth
+// @Param		request	body	auth.PasswordRequest	true	"request body"
+// @Success	200
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/register/password [patch]
 func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.PasswordRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -198,15 +193,15 @@ func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request
 	return h.service.SavePassword(r.Context(), userID, dto)
 }
 
-//	@Tags		auth
-//	@Param		request	body		auth.EmailRequest	true	"request body"
-//	@Success	200		{object}	user.UserResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/login/email [post]
+// @Tags		auth
+// @Param		request	body		auth.EmailRequest	true	"request body"
+// @Success	200		{object}	user.UserResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/login/email [post]
 func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -223,15 +218,15 @@ func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-//	@Tags		auth
-//	@Param		request	body		auth.EmailPasswordRequest	true	"request body"
-//	@Success	200		{object}	auth.AuthResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/login/password [post]
+// @Tags		auth
+// @Param		request	body		auth.EmailPasswordRequest	true	"request body"
+// @Success	200		{object}	auth.AuthResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/login/password [post]
 func (h *handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailPasswordRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		return apperror.NewAppError(apperror.ErrDecodeBody.Error())
+		return apperror.ErrDecodeBody
 	}
 
 	if err := validate.Struct(dto); err != nil {
@@ -250,10 +245,10 @@ func (h *handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
-//	@Tags		auth
-//	@Success	200		{object}	auth.JwtToken
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/auth/refresh [get]
+// @Tags		auth
+// @Success	200		{object}	auth.JwtToken
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/auth/refresh [get]
 func (h *handler) refreshHandler(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie(RefreshTokenCookieName)
 	if err != nil {
@@ -272,9 +267,9 @@ func (h *handler) refreshHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-//	@Tags		auth
-//	@Success	200
-//	@Router		/auth/logout [get]
+// @Tags		auth
+// @Success	200
+// @Router		/auth/logout [get]
 func (h *handler) logoutHandler(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie(RefreshTokenCookieName)
 	if err == nil {

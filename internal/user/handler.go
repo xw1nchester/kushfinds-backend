@@ -29,7 +29,7 @@ func (h *handler) Register(router chi.Router) {
 	router.Group(func(privateUserRouter chi.Router) {
 		privateUserRouter.Use(h.authMiddleware)
 
-		privateUserRouter.Get("/user", apperror.Middleware(h.userHandler))
+		privateUserRouter.Get("/users/me", apperror.Middleware(h.userHandler))
 	})
 }
 
