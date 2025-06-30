@@ -310,7 +310,7 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - other
-  /user:
+  /users/me:
     get:
       responses:
         "200":

@@ -348,7 +348,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user": {
+        "/users/me": {
             "get": {
                 "tags": [
                     "user"

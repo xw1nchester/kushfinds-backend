@@ -5,11 +5,25 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
 )
 
-func NewClient(ctx context.Context, pc config.PostgreSQL) (*pgxpool.Pool, error) {
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", pc.Username, pc.Password, pc.Host, pc.Port, pc.Database)
+type Config struct {
+	Username string
+	Password string
+	Host     string
+	Port     string
+	Database string
+}
+
+func NewClient(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
+	dsn := fmt.Sprintf(
+		"postgresql://%s:%s@%s:%s/%s",
+		cfg.Username,
+		cfg.Password,
+		cfg.Host,
+		cfg.Port,
+		cfg.Database,
+	)
 
 	dbpool, err := pgxpool.New(ctx, dsn)
 	if err != nil {

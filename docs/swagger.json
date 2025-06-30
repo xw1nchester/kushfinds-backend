@@ -342,7 +342,7 @@
                 }
             }
         },
-        "/user": {
+        "/users/me": {
             "get": {
                 "tags": [
                     "user"

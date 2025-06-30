@@ -9,6 +9,9 @@ http_server:
   address: :8080
   timeout: 4s
   idle_timeout: 60s
+  allowed_origins:
+    - http://localhost:5173
+    - http://localhost:3000
 jwt:
   secret: $3cr3t
   access_token_ttl: 5m

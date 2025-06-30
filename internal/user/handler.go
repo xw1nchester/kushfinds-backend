@@ -36,7 +36,7 @@ func (h *handler) Register(router chi.Router) {
 //	@Tags		user
 //	@Success	200		{object}	UserResponse
 //	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/user [get]
+//	@Router		/users/me [get]
 func (h *handler) userHandler(w http.ResponseWriter, r *http.Request) error {
 	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
 
