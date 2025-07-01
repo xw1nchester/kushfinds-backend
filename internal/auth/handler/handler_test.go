@@ -14,7 +14,8 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	mock_auth "github.com/vetrovegor/kushfinds-backend/internal/auth/mocks"
+	"github.com/vetrovegor/kushfinds-backend/internal/auth/service"
+	mockauthservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service/mocks"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/mock/gomock"
 )
@@ -23,10 +24,10 @@ func TestRegisterEmailHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -155,10 +156,10 @@ func TestRegisterVerifyHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -322,7 +323,7 @@ func TestVerifyResendHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type args struct {
 		body      interface{}
@@ -432,10 +433,10 @@ func TestRegisterProfileHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -577,10 +578,10 @@ func TestRegisterPasswordHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -713,10 +714,10 @@ func TestLoginEmailHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -850,10 +851,10 @@ func TestLoginPasswordHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -1038,10 +1039,10 @@ func TestRefreshHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {
@@ -1151,10 +1152,10 @@ func TestLogoutHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_auth.NewMockService(ctrl)
+	mockService := mockauthservice.NewMockService(ctrl)
 
 	type fields struct {
-		service auth.Service
+		service service.Service
 	}
 
 	type args struct {

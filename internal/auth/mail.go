@@ -7,12 +7,17 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 )
 
+//go:generate mockgen -source=mail.go -destination=mocks/mock.go -package=mockmail
+type MailManager interface {
+	SendMail(subject string, body string, to []string) error
+}
+
 type mailManager struct {
 	smtpConfig config.SMTP
 }
 
-func NewMailManager(smtpConfig config.SMTP) mailManager {
-	return mailManager{
+func NewMailManager(smtpConfig config.SMTP) MailManager {
+	return &mailManager{
 		smtpConfig: smtpConfig,
 	}
 }

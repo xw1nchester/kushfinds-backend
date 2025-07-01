@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	mock_jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt/mocks"
+	mockjwt "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt/mocks"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
@@ -16,7 +16,7 @@ func TestAuthMiddleware(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTokenManager := mock_jwtauth.NewMockTokenManager(ctrl) // предполагается, что мок сгенерирован
+	mockTokenManager := mockjwt.NewMockTokenManager(ctrl) // предполагается, что мок сгенерирован
 	logger := zap.NewNop()
 	middleware := NewAuthMiddleware(logger, mockTokenManager)
 

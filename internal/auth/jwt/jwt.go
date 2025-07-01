@@ -7,7 +7,7 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 )
 
-//go:generate mockgen -source=jwt.go -destination=mocks/mock.go
+//go:generate mockgen -source=jwt.go -destination=mocks/mock.go -package=mockjwt
 type TokenManager interface {
 	GenerateToken(userID int) (string, error)
 	GetRefreshTokenTTL() time.Duration

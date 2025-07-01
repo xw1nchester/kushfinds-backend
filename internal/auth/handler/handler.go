@@ -9,6 +9,7 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
+	"github.com/vetrovegor/kushfinds-backend/internal/auth/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
 	"go.uber.org/zap"
 )
@@ -20,12 +21,12 @@ const (
 var validate = validator.New()
 
 type handler struct {
-	service        auth.Service
+	service        service.Service
 	authMiddleware func(http.Handler) http.Handler
 	logger         *zap.Logger
 }
 
-func NewHandler(service auth.Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
+func NewHandler(service service.Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
 		service:        service,
 		authMiddleware: authMiddleware,

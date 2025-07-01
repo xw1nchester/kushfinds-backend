@@ -12,6 +12,7 @@ import (
 	authdb "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	authhandler "github.com/vetrovegor/kushfinds-backend/internal/auth/handler"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
+	authservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	codedb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
@@ -77,7 +78,7 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 
 		txManager := pgtx.NewPgManager(pgClient)
 
-		authService := auth.NewService(
+		authService := authservice.NewService(
 			authRepository,
 			userService,
 			codeService,

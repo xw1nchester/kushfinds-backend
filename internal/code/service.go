@@ -24,6 +24,7 @@ var (
 	ErrCodeNotFound    = errors.New("code not found")
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/mock.go -package=mockcodeservice
 type Service interface {
 	GenerateVerify(ctx context.Context, userID int) (string, error)
 	GenerateRecoveryPassword(ctx context.Context, userID int) (string, error)

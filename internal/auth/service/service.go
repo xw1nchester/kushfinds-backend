@@ -1,4 +1,4 @@
-package auth
+package service
 
 import (
 	"context"
@@ -8,11 +8,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
+	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
-	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
+	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -30,16 +31,16 @@ var (
 	ErrPasswordNotSet        = apperror.NewAppError("the user does not have a password set")
 )
 
-//go:generate mockgen -source=service.go -destination=mocks/mock.go
+//go:generate mockgen -source=service.go -destination=mocks/mock.go -package=mockauthservice
 type Service interface {
-	RegisterEmail(ctx context.Context, dto EmailRequest) error
-	RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error)
-	VerifyResend(ctx context.Context, dto EmailRequest) error
-	SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.UserResponse, error)
-	SavePassword(ctx context.Context, userID int, dto PasswordRequest) error
-	GetUserByEmail(ctx context.Context, dto EmailRequest) (*user.UserResponse, error)
-	Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error)
-	Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error)
+	RegisterEmail(ctx context.Context, dto auth.EmailRequest) error
+	RegisterVerify(ctx context.Context, dto auth.CodeRequest, userAgent string) (*auth.AuthFullResponse, error)
+	VerifyResend(ctx context.Context, dto auth.EmailRequest) error
+	SaveProfileInfo(ctx context.Context, userID int, dto auth.ProfileRequest) (*user.UserResponse, error)
+	SavePassword(ctx context.Context, userID int, dto auth.PasswordRequest) error
+	GetUserByEmail(ctx context.Context, dto auth.EmailRequest) (*user.UserResponse, error)
+	Login(ctx context.Context, dto auth.EmailPasswordRequest, userAgent string) (*auth.AuthFullResponse, error)
+	Refresh(ctx context.Context, token string, userAgent string) (*auth.Tokens, error)
 	Logout(ctx context.Context, token string) error
 }
 
@@ -49,7 +50,7 @@ type service struct {
 	userService    user.Service
 	codeService    code.Service
 	tokenManager   jwtauth.TokenManager
-	mailManager    mailManager
+	mailManager    auth.MailManager
 	txManager      transactor.Manager
 	logger         *zap.Logger
 }
@@ -59,7 +60,7 @@ func NewService(
 	userService user.Service,
 	codeService code.Service,
 	tokenManager jwtauth.TokenManager,
-	mailManager mailManager,
+	mailManager auth.MailManager,
 	txManager transactor.Manager,
 	logger *zap.Logger,
 ) Service {
@@ -74,7 +75,7 @@ func NewService(
 	}
 }
 
-func (s *service) generateTokens(ctx context.Context, userAgent string, userID int) (*Tokens, error) {
+func (s *service) generateTokens(ctx context.Context, userAgent string, userID int) (*auth.Tokens, error) {
 	accessToken, err := s.tokenManager.GenerateToken(userID)
 	if err != nil {
 		s.logger.Error("unexpected error when generating jwt token", zap.Error(err))
@@ -91,13 +92,13 @@ func (s *service) generateTokens(ctx context.Context, userAgent string, userID i
 		return nil, err
 	}
 
-	return &Tokens{
-		JwtToken:     JwtToken{AccessToken: accessToken},
+	return &auth.Tokens{
+		JwtToken:     auth.JwtToken{AccessToken: accessToken},
 		RefreshToken: refreshToken,
 	}, nil
 }
 
-func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
+func (s *service) RegisterEmail(ctx context.Context, dto auth.EmailRequest) error {
 	_, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil && !errors.Is(err, apperror.ErrNotFound) {
 		return err
@@ -140,7 +141,7 @@ func (s *service) RegisterEmail(ctx context.Context, dto EmailRequest) error {
 	return nil
 }
 
-func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent string) (*AuthFullResponse, error) {
+func (s *service) RegisterVerify(ctx context.Context, dto auth.CodeRequest, userAgent string) (*auth.AuthFullResponse, error) {
 	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, apperror.ErrNotFound) {
@@ -164,7 +165,7 @@ func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent
 	}
 
 	var verifiedUser *user.User
-	var tokens *Tokens
+	var tokens *auth.Tokens
 
 	err = s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		verifiedUser, err = s.userService.Verify(ctx, existingUser.ID)
@@ -184,13 +185,13 @@ func (s *service) RegisterVerify(ctx context.Context, dto CodeRequest, userAgent
 		return nil, err
 	}
 
-	return &AuthFullResponse{
+	return &auth.AuthFullResponse{
 		UserResponse: user.UserResponse{User: *verifiedUser},
 		Tokens:       *tokens,
 	}, nil
 }
 
-func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
+func (s *service) VerifyResend(ctx context.Context, dto auth.EmailRequest) error {
 	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, apperror.ErrNotFound) {
@@ -226,7 +227,7 @@ func (s *service) VerifyResend(ctx context.Context, dto EmailRequest) error {
 	return nil
 }
 
-func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRequest) (*user.UserResponse, error) {
+func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto auth.ProfileRequest) (*user.UserResponse, error) {
 	existingUser, err := s.userService.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -261,7 +262,7 @@ func (s *service) SaveProfileInfo(ctx context.Context, userID int, dto ProfileRe
 	return &user.UserResponse{User: *updatedUser}, nil
 }
 
-func (s *service) SavePassword(ctx context.Context, userID int, dto PasswordRequest) error {
+func (s *service) SavePassword(ctx context.Context, userID int, dto auth.PasswordRequest) error {
 	existingUser, err := s.userService.GetByID(ctx, userID)
 	if err != nil {
 		return err
@@ -284,7 +285,7 @@ func (s *service) SavePassword(ctx context.Context, userID int, dto PasswordRequ
 	return nil
 }
 
-func (s *service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*user.UserResponse, error) {
+func (s *service) GetUserByEmail(ctx context.Context, dto auth.EmailRequest) (*user.UserResponse, error) {
 	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, apperror.ErrNotFound) {
@@ -297,7 +298,7 @@ func (s *service) GetUserByEmail(ctx context.Context, dto EmailRequest) (*user.U
 	return &user.UserResponse{User: *existingUser}, nil
 }
 
-func (s *service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent string) (*AuthFullResponse, error) {
+func (s *service) Login(ctx context.Context, dto auth.EmailPasswordRequest, userAgent string) (*auth.AuthFullResponse, error) {
 	existingUser, err := s.userService.GetByEmail(ctx, dto.Email)
 	if err != nil {
 		if errors.Is(err, apperror.ErrNotFound) {
@@ -324,14 +325,14 @@ func (s *service) Login(ctx context.Context, dto EmailPasswordRequest, userAgent
 		return nil, err
 	}
 
-	return &AuthFullResponse{
+	return &auth.AuthFullResponse{
 		UserResponse: user.UserResponse{User: *existingUser},
 		Tokens:       *tokens,
 	}, nil
 }
 
-func (s *service) Refresh(ctx context.Context, token string, userAgent string) (*Tokens, error) {
-	var tokens *Tokens
+func (s *service) Refresh(ctx context.Context, token string, userAgent string) (*auth.Tokens, error) {
+	var tokens *auth.Tokens
 	
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
