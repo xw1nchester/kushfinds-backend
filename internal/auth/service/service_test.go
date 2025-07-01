@@ -22,12 +22,19 @@ import (
 )
 
 const (
+	UserID          = 1
 	Email           = "test@mail.ru"
 	Code            = "12345"
 	UserAgent       = "Go-http-client/1.1"
 	AccessToken     = "some.access.token"
-	RefreshToken    = "refresh-token"
 	RefreshTokenTTL = 720 * time.Hour
+)
+
+var (
+	UnverifiedUser = &user.User{ID: UserID, Email: Email, IsVerified: false}
+	VerifiedUser   = &user.User{ID: UserID, Email: Email, IsVerified: true}
+
+	ErrUnexpected = errors.New("unexpected error")
 )
 
 func TestGenerateTokens(t *testing.T) {
@@ -41,16 +48,12 @@ func TestGenerateTokens(t *testing.T) {
 
 	tests := []struct {
 		name                string
-		userAgent           string
-		userID              int
 		mockBehavior        mockBehavior
 		expectedError       error
 		expectedAccessToken string
 	}{
 		{
-			name:      "success",
-			userAgent: UserAgent,
-			userID:    1,
+			name: "success",
 			mockBehavior: func(
 				ctx context.Context,
 				mockTokenManager *mockjwt.MockTokenManager,
@@ -66,9 +69,7 @@ func TestGenerateTokens(t *testing.T) {
 			expectedAccessToken: AccessToken,
 		},
 		{
-			name:      "access token generation error",
-			userAgent: UserAgent,
-			userID:    1,
+			name: "access token generation error",
 			mockBehavior: func(
 				ctx context.Context,
 				mockTokenManager *mockjwt.MockTokenManager,
@@ -76,15 +77,13 @@ func TestGenerateTokens(t *testing.T) {
 				userAgent string,
 				userID int,
 			) {
-				mockTokenManager.EXPECT().GenerateToken(userID).Return("", errors.New("some error"))
+				mockTokenManager.EXPECT().GenerateToken(userID).Return("", ErrUnexpected)
 			},
-			expectedError:       errors.New("some error"),
+			expectedError:       ErrUnexpected,
 			expectedAccessToken: "",
 		},
 		{
-			name:      "creating session error",
-			userAgent: UserAgent,
-			userID:    1,
+			name: "creating session error",
 			mockBehavior: func(
 				ctx context.Context,
 				mockTokenManager *mockjwt.MockTokenManager,
@@ -94,9 +93,9 @@ func TestGenerateTokens(t *testing.T) {
 			) {
 				mockTokenManager.EXPECT().GenerateToken(userID).Return(AccessToken, nil)
 				mockTokenManager.EXPECT().GetRefreshTokenTTL().Return(RefreshTokenTTL)
-				mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, userID, gomock.Any()).Return(errors.New("some error"))
+				mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, userID, gomock.Any()).Return(ErrUnexpected)
 			},
-			expectedError:       errors.New("some error"),
+			expectedError:       ErrUnexpected,
 			expectedAccessToken: "",
 		},
 	}
@@ -116,9 +115,9 @@ func TestGenerateTokens(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			tt.mockBehavior(ctx, mockTokenManager, mockAuthRepo, tt.userAgent, tt.userID)
+			tt.mockBehavior(ctx, mockTokenManager, mockAuthRepo, UserAgent, UserID)
 
-			resp, err := service.generateTokens(ctx, tt.userAgent, tt.userID)
+			resp, err := service.generateTokens(ctx, UserAgent, UserID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -146,13 +145,11 @@ func TestRegisterEmail(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		dto           auth.EmailRequest
 		mockBehavior  mockBehavior
 		expectedError error
 	}{
 		{
 			name: "successful registration",
-			dto:  auth.EmailRequest{Email: Email},
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -161,14 +158,11 @@ func TestRegisterEmail(t *testing.T) {
 				mockMailManager *mockmail.MockMailManager,
 				dto auth.EmailRequest,
 			) {
-				userID := 1
-				code := "123456"
-
 				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, apperror.ErrNotFound)
 				mockTxManager.EXPECT().WithinTransaction(ctx, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, fn func(context.Context) error) error {
-						mockUserService.EXPECT().Create(ctx, dto.Email).Return(userID, nil)
-						mockCodeService.EXPECT().GenerateVerify(ctx, userID).Return(code, nil)
+						mockUserService.EXPECT().Create(ctx, dto.Email).Return(UserID, nil)
+						mockCodeService.EXPECT().GenerateVerify(ctx, UserID).Return(Code, nil)
 						return fn(ctx)
 					},
 				)
@@ -178,7 +172,6 @@ func TestRegisterEmail(t *testing.T) {
 		},
 		{
 			name: "email already exists",
-			dto:  auth.EmailRequest{Email: Email},
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -187,13 +180,26 @@ func TestRegisterEmail(t *testing.T) {
 				mockMailManager *mockmail.MockMailManager,
 				dto auth.EmailRequest,
 			) {
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(&user.User{ID: 2}, nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
 			},
 			expectedError: apperror.NewAppError("the user with this email already exists"),
 		},
 		{
+			name: "unexpected error when fetching existing user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockTxManager *mocktransactor.MockManager,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
 			name: "error in user creation inside transaction",
-			dto:  auth.EmailRequest{Email: Email},
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -214,7 +220,6 @@ func TestRegisterEmail(t *testing.T) {
 		},
 		{
 			name: "error in code creation inside transaction",
-			dto:  auth.EmailRequest{Email: Email},
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -258,9 +263,9 @@ func TestRegisterEmail(t *testing.T) {
 				logger:      zap.NewNop(),
 			}
 
-			tt.mockBehavior(ctx, mockUserService, mockTxManager, mockCodeService, mockMailManager, tt.dto)
+			tt.mockBehavior(ctx, mockUserService, mockTxManager, mockCodeService, mockMailManager, auth.EmailRequest{Email: Email})
 
-			err := service.RegisterEmail(ctx, tt.dto)
+			err := service.RegisterEmail(ctx, auth.EmailRequest{Email: Email})
 
 			if tt.expectedError != nil {
 				require.EqualError(t, err, tt.expectedError.Error())
@@ -285,16 +290,12 @@ func TestRegisterVerify(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		dto           auth.CodeRequest
-		userAgent     string
 		mockBehavior  mockBehavior
 		expectedError error
 		expectedUser  *user.User
 	}{
 		{
-			name:      "success",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "success",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -305,30 +306,23 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				userID := 42
-				existingUser := &user.User{ID: userID, Email: dto.Email, IsVerified: false}
-				verifiedUser := &user.User{ID: userID, Email: dto.Email, IsVerified: true}
-				accessToken := AccessToken
-
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(existingUser, nil)
-				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, userID).Return(nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(nil)
 				mockTxManager.EXPECT().WithinTransaction(ctx, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, fn func(ctx context.Context) error) error {
-						mockUserService.EXPECT().Verify(ctx, userID).Return(verifiedUser, nil)
-						mockTokenManager.EXPECT().GenerateToken(userID).Return(accessToken, nil)
+						mockUserService.EXPECT().Verify(ctx, UserID).Return(VerifiedUser, nil)
+						mockTokenManager.EXPECT().GenerateToken(UserID).Return(AccessToken, nil)
 						mockTokenManager.EXPECT().GetRefreshTokenTTL().Return(RefreshTokenTTL)
-						mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, userID, gomock.Any()).Return(nil)
+						mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, UserID, gomock.Any()).Return(nil)
 						return fn(ctx)
 					},
 				)
 			},
 			expectedError: nil,
-			expectedUser:  &user.User{ID: 42, Email: Email, IsVerified: true},
+			expectedUser:  VerifiedUser,
 		},
 		{
-			name:      "user not found",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "user not found",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -344,9 +338,7 @@ func TestRegisterVerify(t *testing.T) {
 			expectedError: ErrInvalidCredentials,
 		},
 		{
-			name:      "user already verified",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "unexpected error when fetching existing user",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -357,15 +349,28 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				user := &user.User{ID: 1, Email: dto.Email, IsVerified: true}
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(user, nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "user already verified",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockTxManager *mocktransactor.MockManager,
+				mockTokenManager *mockjwt.MockTokenManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.CodeRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(VerifiedUser, nil)
 			},
 			expectedError: ErrUserAlreadyVerified,
 		},
 		{
-			name:      "invalid code",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "invalid code",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -376,17 +381,13 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				userID := 10
-				user := &user.User{ID: userID, Email: dto.Email, IsVerified: false}
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(user, nil)
-				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, userID).Return(code.ErrCodeNotFound)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(code.ErrCodeNotFound)
 			},
 			expectedError: ErrInvalidCode,
 		},
 		{
-			name:      "error in verify user",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "unexpected error when validating code",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -397,13 +398,28 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				userID := 5
-				user := &user.User{ID: userID, Email: dto.Email, IsVerified: false}
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(user, nil)
-				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, userID).Return(nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "error in verify user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockTxManager *mocktransactor.MockManager,
+				mockTokenManager *mockjwt.MockTokenManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.CodeRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(nil)
 				mockTxManager.EXPECT().WithinTransaction(ctx, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, fn func(ctx context.Context) error) error {
-						mockUserService.EXPECT().Verify(ctx, userID).Return(nil, errors.New("verify error"))
+						mockUserService.EXPECT().Verify(ctx, UserID).Return(nil, errors.New("verify error"))
 						return fn(ctx)
 					},
 				)
@@ -411,9 +427,7 @@ func TestRegisterVerify(t *testing.T) {
 			expectedError: errors.New("verify error"),
 		},
 		{
-			name:      "error generating token",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "error generating token",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -424,16 +438,12 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				userID := 5
-				noVerifiedUser := &user.User{ID: userID, Email: dto.Email, IsVerified: false}
-				verifiedUser := &user.User{ID: userID, Email: dto.Email, IsVerified: true}
-
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(noVerifiedUser, nil)
-				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, userID).Return(nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(nil)
 				mockTxManager.EXPECT().WithinTransaction(ctx, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, fn func(ctx context.Context) error) error {
-						mockUserService.EXPECT().Verify(ctx, userID).Return(verifiedUser, nil)
-						mockTokenManager.EXPECT().GenerateToken(userID).Return("", errors.New("token generation error"))
+						mockUserService.EXPECT().Verify(ctx, UserID).Return(VerifiedUser, nil)
+						mockTokenManager.EXPECT().GenerateToken(UserID).Return("", errors.New("token generation error"))
 						return fn(ctx)
 					},
 				)
@@ -441,9 +451,7 @@ func TestRegisterVerify(t *testing.T) {
 			expectedError: errors.New("token generation error"),
 		},
 		{
-			name:      "error creating session",
-			dto:       auth.CodeRequest{Email: Email, Code: Code},
-			userAgent: UserAgent,
+			name: "error creating session",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
@@ -454,18 +462,14 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				userID := 5
-				noVerifiedUser := &user.User{ID: userID, Email: dto.Email, IsVerified: false}
-				verifiedUser := &user.User{ID: userID, Email: dto.Email, IsVerified: true}
-
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(noVerifiedUser, nil)
-				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, userID).Return(nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(nil)
 				mockTxManager.EXPECT().WithinTransaction(ctx, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, fn func(ctx context.Context) error) error {
-						mockUserService.EXPECT().Verify(ctx, userID).Return(verifiedUser, nil)
-						mockTokenManager.EXPECT().GenerateToken(userID).Return("token", nil)
+						mockUserService.EXPECT().Verify(ctx, UserID).Return(VerifiedUser, nil)
+						mockTokenManager.EXPECT().GenerateToken(UserID).Return("token", nil)
 						mockTokenManager.EXPECT().GetRefreshTokenTTL().Return(RefreshTokenTTL)
-						mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, userID, gomock.Any()).Return(errors.New("session error"))
+						mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, UserID, gomock.Any()).Return(errors.New("session error"))
 						return fn(ctx)
 					},
 				)
@@ -495,9 +499,21 @@ func TestRegisterVerify(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			tt.mockBehavior(ctx, mockUserService, mockCodeService, mockTxManager, mockTokenManager, mockAuthRepo, tt.dto, tt.userAgent)
+			tt.mockBehavior(
+				ctx,
+				mockUserService,
+				mockCodeService,
+				mockTxManager,
+				mockTokenManager,
+				mockAuthRepo,
+				auth.CodeRequest{Email: Email, Code: Code},
+				UserAgent,
+			)
 
-			resp, err := service.RegisterVerify(ctx, tt.dto, tt.userAgent)
+			resp, err := service.RegisterVerify(
+				ctx, auth.CodeRequest{Email: Email, Code: Code},
+				UserAgent,
+			)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
