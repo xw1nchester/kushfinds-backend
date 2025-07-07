@@ -12,6 +12,7 @@ import (
 	mockauthdb "github.com/vetrovegor/kushfinds-backend/internal/auth/db/mocks"
 	mockjwt "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt/mocks"
 	mockmail "github.com/vetrovegor/kushfinds-backend/internal/auth/mocks"
+	mockpassword "github.com/vetrovegor/kushfinds-backend/internal/auth/password/mocks"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	mockcodeservice "github.com/vetrovegor/kushfinds-backend/internal/code/mocks"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
@@ -24,6 +25,10 @@ import (
 const (
 	UserID          = 1
 	Email           = "test@mail.ru"
+	Username        = "l4ndar"
+	FirstName       = "John"
+	LastName        = "Doe"
+	Password        = "qwertyuiop"
 	Code            = "12345"
 	UserAgent       = "Go-http-client/1.1"
 	AccessToken     = "some.access.token"
@@ -31,8 +36,31 @@ const (
 )
 
 var (
-	UnverifiedUser = &user.User{ID: UserID, Email: Email, IsVerified: false}
-	VerifiedUser   = &user.User{ID: UserID, Email: Email, IsVerified: true}
+	// TODO: подумать как лучше
+	PasswordHash = &[]byte{1}
+
+	UnverifiedUser              = &user.User{ID: UserID, Email: Email, IsVerified: false}
+	VerifiedUser                = &user.User{ID: UserID, Email: Email, IsVerified: true}
+	VerifiedUserWithProfileInfo = &user.User{
+		ID:            UserID,
+		Email:         Email,
+		IsVerified:    true,
+		Username:      ptrStr(Username),
+		FirstName:     ptrStr(FirstName),
+		LastName:      ptrStr(LastName),
+		IsPasswordSet: false,
+		PasswordHash:  nil,
+	}
+	VerifiedUserWithProfileInfoAndPassword = &user.User{
+		ID:            UserID,
+		Email:         Email,
+		IsVerified:    true,
+		Username:      ptrStr(Username),
+		FirstName:     ptrStr(FirstName),
+		LastName:      ptrStr(LastName),
+		IsPasswordSet: true,
+		PasswordHash:  PasswordHash,
+	}
 
 	ErrUnexpected = errors.New("unexpected error")
 )
@@ -40,7 +68,7 @@ var (
 func TestGenerateTokens(t *testing.T) {
 	type mockBehavior func(
 		ctx context.Context,
-		mockTokenManager *mockjwt.MockTokenManager,
+		mockTokenManager *mockjwt.MockManager,
 		mockAuthRepo *mockauthdb.MockRepository,
 		userAgent string,
 		userID int,
@@ -56,7 +84,7 @@ func TestGenerateTokens(t *testing.T) {
 			name: "success",
 			mockBehavior: func(
 				ctx context.Context,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				userAgent string,
 				userID int,
@@ -72,7 +100,7 @@ func TestGenerateTokens(t *testing.T) {
 			name: "access token generation error",
 			mockBehavior: func(
 				ctx context.Context,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				userAgent string,
 				userID int,
@@ -86,7 +114,7 @@ func TestGenerateTokens(t *testing.T) {
 			name: "creating session error",
 			mockBehavior: func(
 				ctx context.Context,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				userAgent string,
 				userID int,
@@ -105,7 +133,7 @@ func TestGenerateTokens(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockTokenManager := mockjwt.NewMockTokenManager(ctrl)
+			mockTokenManager := mockjwt.NewMockManager(ctrl)
 			mockAuthRepo := mockauthdb.NewMockRepository(ctrl)
 
 			service := &service{
@@ -282,7 +310,7 @@ func TestRegisterVerify(t *testing.T) {
 		mockUserService *mockuserservice.MockService,
 		mockCodeService *mockcodeservice.MockService,
 		mockTxManager *mocktransactor.MockManager,
-		mockTokenManager *mockjwt.MockTokenManager,
+		mockTokenManager *mockjwt.MockManager,
 		mockAuthRepo *mockauthdb.MockRepository,
 		dto auth.CodeRequest,
 		userAgent string,
@@ -301,7 +329,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -328,7 +356,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -344,7 +372,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -360,7 +388,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -376,7 +404,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -393,7 +421,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -410,7 +438,7 @@ func TestRegisterVerify(t *testing.T) {
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -427,13 +455,13 @@ func TestRegisterVerify(t *testing.T) {
 			expectedError: errors.New("verify error"),
 		},
 		{
-			name: "error generating token",
+			name: "error when generating token",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -443,21 +471,21 @@ func TestRegisterVerify(t *testing.T) {
 				mockTxManager.EXPECT().WithinTransaction(ctx, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, fn func(ctx context.Context) error) error {
 						mockUserService.EXPECT().Verify(ctx, UserID).Return(VerifiedUser, nil)
-						mockTokenManager.EXPECT().GenerateToken(UserID).Return("", errors.New("token generation error"))
+						mockTokenManager.EXPECT().GenerateToken(UserID).Return("", ErrUnexpected)
 						return fn(ctx)
 					},
 				)
 			},
-			expectedError: errors.New("token generation error"),
+			expectedError: ErrUnexpected,
 		},
 		{
-			name: "error creating session",
+			name: "error when creating session",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockService,
 				mockCodeService *mockcodeservice.MockService,
 				mockTxManager *mocktransactor.MockManager,
-				mockTokenManager *mockjwt.MockTokenManager,
+				mockTokenManager *mockjwt.MockManager,
 				mockAuthRepo *mockauthdb.MockRepository,
 				dto auth.CodeRequest,
 				userAgent string,
@@ -469,12 +497,12 @@ func TestRegisterVerify(t *testing.T) {
 						mockUserService.EXPECT().Verify(ctx, UserID).Return(VerifiedUser, nil)
 						mockTokenManager.EXPECT().GenerateToken(UserID).Return("token", nil)
 						mockTokenManager.EXPECT().GetRefreshTokenTTL().Return(RefreshTokenTTL)
-						mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, UserID, gomock.Any()).Return(errors.New("session error"))
+						mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, UserID, gomock.Any()).Return(ErrUnexpected)
 						return fn(ctx)
 					},
 				)
 			},
-			expectedError: errors.New("session error"),
+			expectedError: ErrUnexpected,
 		},
 	}
 
@@ -486,7 +514,7 @@ func TestRegisterVerify(t *testing.T) {
 			mockUserService := mockuserservice.NewMockService(ctrl)
 			mockCodeService := mockcodeservice.NewMockService(ctrl)
 			mockTxManager := mocktransactor.NewMockManager(ctrl)
-			mockTokenManager := mockjwt.NewMockTokenManager(ctrl)
+			mockTokenManager := mockjwt.NewMockManager(ctrl)
 			mockAuthRepo := mockauthdb.NewMockRepository(ctrl)
 
 			service := &service{
@@ -527,4 +555,831 @@ func TestRegisterVerify(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVerifyResend(t *testing.T) {
+	type mockBehavior func(
+		ctx context.Context,
+		mockUserService *mockuserservice.MockService,
+		mockCodeService *mockcodeservice.MockService,
+		mockMailManager *mockmail.MockMailManager,
+		dto auth.EmailRequest,
+	)
+
+	tests := []struct {
+		name          string
+		mockBehavior  mockBehavior
+		expectedError error
+		expectedUser  *user.User
+	}{
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().GenerateVerify(ctx, UnverifiedUser.ID).Return(Code, nil)
+				mockMailManager.EXPECT().SendMail(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			},
+			expectedError: nil,
+		},
+		{
+			name: "user not found",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, apperror.ErrNotFound)
+			},
+			expectedError: ErrInvalidCredentials,
+		},
+		{
+			name: "db error when fetching user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "already verified user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(VerifiedUser, nil)
+			},
+			expectedError: ErrUserAlreadyVerified,
+		},
+		{
+			name: "code already been sent",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().GenerateVerify(ctx, UnverifiedUser.ID).Return("", code.ErrCodeAlreadySent)
+			},
+			expectedError: ErrCodeAlreadySent,
+		},
+		{
+			name: "db error when save code",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockCodeService *mockcodeservice.MockService,
+				mockMailManager *mockmail.MockMailManager,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
+				mockCodeService.EXPECT().GenerateVerify(ctx, UnverifiedUser.ID).Return("", ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockUserService := mockuserservice.NewMockService(ctrl)
+			mockCodeService := mockcodeservice.NewMockService(ctrl)
+			mockMailManager := mockmail.NewMockMailManager(ctrl)
+
+			service := &service{
+				userService: mockUserService,
+				codeService: mockCodeService,
+				mailManager: mockMailManager,
+				logger:      zap.NewNop(),
+			}
+
+			ctx := context.Background()
+			tt.mockBehavior(
+				ctx,
+				mockUserService,
+				mockCodeService,
+				mockMailManager,
+				auth.EmailRequest{Email: Email},
+			)
+
+			err := service.VerifyResend(
+				ctx, auth.EmailRequest{Email: Email},
+			)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestSaveProfileInfo(t *testing.T) {
+	type mockBehavior func(
+		ctx context.Context,
+		mockUserService *mockuserservice.MockService,
+		userID int,
+		dto auth.ProfileRequest,
+	)
+
+	tests := []struct {
+		name          string
+		mockBehavior  mockBehavior
+		expectedError error
+		expectedResp  *user.UserResponse
+	}{
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				userID int,
+				dto auth.ProfileRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUser, nil)
+				mockUserService.EXPECT().CheckUsernameIsAvailable(ctx, dto.Username).Return(true, nil)
+				mockUserService.EXPECT().SetProfileInfo(
+					ctx,
+					&user.User{
+						ID:        userID,
+						Username:  &dto.Username,
+						FirstName: &dto.FirstName,
+						LastName:  &dto.LastName,
+					},
+				).Return(VerifiedUserWithProfileInfo, nil)
+			},
+			expectedError: nil,
+			expectedResp:  &user.UserResponse{User: *VerifiedUserWithProfileInfo},
+		},
+		{
+			name: "db error when fetching user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				userID int,
+				dto auth.ProfileRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+			expectedResp:  nil,
+		},
+		{
+			name: "username already set",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				userID int,
+				dto auth.ProfileRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUserWithProfileInfo, nil)
+			},
+			expectedError: ErrNicknameAlreadySet,
+			expectedResp:  nil,
+		},
+		{
+			name: "db error when check username availability",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				userID int,
+				dto auth.ProfileRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUser, nil)
+				mockUserService.EXPECT().CheckUsernameIsAvailable(ctx, dto.Username).Return(false, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+			expectedResp:  nil,
+		},
+		{
+			name: "username is not available",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				userID int,
+				dto auth.ProfileRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUser, nil)
+				mockUserService.EXPECT().CheckUsernameIsAvailable(ctx, dto.Username).Return(false, nil)
+			},
+			expectedError: ErrUsernameAlreadyExists,
+			expectedResp:  nil,
+		},
+		{
+			name: "db error when set profile info",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				userID int,
+				dto auth.ProfileRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUser, nil)
+				mockUserService.EXPECT().CheckUsernameIsAvailable(ctx, dto.Username).Return(true, nil)
+				mockUserService.EXPECT().SetProfileInfo(
+					ctx,
+					&user.User{
+						ID:        userID,
+						Username:  &dto.Username,
+						FirstName: &dto.FirstName,
+						LastName:  &dto.LastName,
+					},
+				).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+			expectedResp:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockUserService := mockuserservice.NewMockService(ctrl)
+
+			service := &service{
+				userService: mockUserService,
+				logger:      zap.NewNop(),
+			}
+
+			ctx := context.Background()
+			tt.mockBehavior(
+				ctx,
+				mockUserService,
+				UserID,
+				auth.ProfileRequest{
+					Username:  Username,
+					FirstName: FirstName,
+					LastName:  LastName,
+				},
+			)
+
+			resp, err := service.SaveProfileInfo(
+				ctx,
+				UserID,
+				auth.ProfileRequest{
+					Username:  Username,
+					FirstName: FirstName,
+					LastName:  LastName,
+				},
+			)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.expectedError.Error())
+				require.Nil(t, resp)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, resp)
+				require.Equal(t, tt.expectedResp.User.ID, resp.User.ID)
+				require.Equal(t, *tt.expectedResp.User.Username, *resp.User.Username)
+				require.Equal(t, *tt.expectedResp.User.FirstName, *resp.User.FirstName)
+				require.Equal(t, *tt.expectedResp.User.LastName, *resp.User.LastName)
+			}
+		})
+	}
+}
+
+func TestSavePassword(t *testing.T) {
+	type mockBehavior func(
+		ctx context.Context,
+		mockUserService *mockuserservice.MockService,
+		mockPasswordManager *mockpassword.MockManager,
+		userID int,
+		dto auth.PasswordRequest,
+	)
+
+	tests := []struct {
+		name          string
+		mockBehavior  mockBehavior
+		expectedError error
+	}{
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				userID int,
+				dto auth.PasswordRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUserWithProfileInfo, nil)
+				mockPasswordManager.EXPECT().GenerateHashFromPassword([]byte(dto.Password)).Return(*PasswordHash, nil)
+				mockUserService.EXPECT().SetPassword(ctx, userID, *PasswordHash).Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "error when fetching user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				userID int,
+				dto auth.PasswordRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "password is already set",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				userID int,
+				dto auth.PasswordRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUserWithProfileInfoAndPassword, nil)
+			},
+			expectedError: ErrPasswordAlreadySet,
+		},
+		{
+			name: "error when hashing password",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				userID int,
+				dto auth.PasswordRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUserWithProfileInfo, nil)
+				mockPasswordManager.EXPECT().GenerateHashFromPassword([]byte(dto.Password)).Return(nil, ErrUnexpected)
+
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "error when saving password",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				userID int,
+				dto auth.PasswordRequest,
+			) {
+				mockUserService.EXPECT().GetByID(ctx, userID).Return(VerifiedUserWithProfileInfo, nil)
+				mockPasswordManager.EXPECT().GenerateHashFromPassword([]byte(dto.Password)).Return(*PasswordHash, nil)
+				mockUserService.EXPECT().SetPassword(ctx, userID, *PasswordHash).Return(ErrUnexpected)
+
+			},
+			expectedError: ErrUnexpected,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockUserService := mockuserservice.NewMockService(ctrl)
+			mockPasswordManager := mockpassword.NewMockManager(ctrl)
+
+			service := &service{
+				userService:     mockUserService,
+				passwordManager: mockPasswordManager,
+				logger:          zap.NewNop(),
+			}
+
+			ctx := context.Background()
+			tt.mockBehavior(
+				ctx,
+				mockUserService,
+				mockPasswordManager,
+				UserID,
+				auth.PasswordRequest{
+					Password: Password,
+				},
+			)
+
+			err := service.SavePassword(
+				ctx,
+				UserID,
+				auth.PasswordRequest{
+					Password: Password,
+				},
+			)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestGetUserByEmail(t *testing.T) {
+	type mockBehavior func(
+		ctx context.Context,
+		mockUserService *mockuserservice.MockService,
+		dto auth.EmailRequest,
+	)
+
+	tests := []struct {
+		name          string
+		mockBehavior  mockBehavior
+		expectedError error
+		expectedResp  *user.UserResponse
+	}{
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(VerifiedUser, nil)
+			},
+			expectedError: nil,
+			expectedResp:  &user.UserResponse{User: *VerifiedUser},
+		},
+		{
+			name: "user not found",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, apperror.ErrNotFound)
+			},
+			expectedError: ErrInvalidCredentials,
+			expectedResp:  nil,
+		},
+		{
+			name: "db error when fetching user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				dto auth.EmailRequest,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+			expectedResp:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockUserService := mockuserservice.NewMockService(ctrl)
+
+			service := &service{
+				userService: mockUserService,
+				logger:      zap.NewNop(),
+			}
+
+			ctx := context.Background()
+			tt.mockBehavior(
+				ctx,
+				mockUserService,
+				auth.EmailRequest{
+					Email: Email,
+				},
+			)
+
+			resp, err := service.GetUserByEmail(
+				ctx,
+				auth.EmailRequest{
+					Email: Email,
+				},
+			)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.expectedError.Error())
+				require.Nil(t, resp)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, resp)
+				require.Equal(t, tt.expectedResp.User.Email, resp.User.Email)
+			}
+		})
+	}
+}
+
+func TestLogin(t *testing.T) {
+	type mockBehavior func(
+		ctx context.Context,
+		mockUserService *mockuserservice.MockService,
+		mockPasswordManager *mockpassword.MockManager,
+		mockTokenManager *mockjwt.MockManager,
+		mockAuthRepo *mockauthdb.MockRepository,
+		dto auth.EmailPasswordRequest,
+		userAgent string,
+	)
+
+	tests := []struct {
+		name          string
+		mockBehavior  mockBehavior
+		expectedError error
+		expectedResp  *auth.AuthFullResponse
+	}{
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				mockTokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(VerifiedUserWithProfileInfoAndPassword, nil)
+				mockPasswordManager.EXPECT().
+					CompareHashAndPassword(*VerifiedUserWithProfileInfoAndPassword.PasswordHash, []byte(dto.Password)).
+					Return(nil)
+				mockTokenManager.EXPECT().GenerateToken(UserID).Return(AccessToken, nil)
+				mockTokenManager.EXPECT().GetRefreshTokenTTL().Return(RefreshTokenTTL)
+				mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), UserAgent, UserID, gomock.Any())
+			},
+			expectedError: nil,
+			expectedResp: &auth.AuthFullResponse{
+				UserResponse: user.UserResponse{User: *VerifiedUserWithProfileInfoAndPassword},
+				Tokens: auth.Tokens{
+					JwtToken: auth.JwtToken{AccessToken: AccessToken},
+				},
+			},
+		},
+		{
+			name: "user not found",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				tokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(nil, apperror.ErrNotFound)
+			},
+			expectedError: ErrInvalidCredentials,
+		},
+		{
+			name: "unexpected error when fetching user",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				tokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(nil, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "user is not verified",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				tokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(UnverifiedUser, nil)
+			},
+			expectedError: ErrUserNotVerified,
+		},
+		{
+			name: "password is not set",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				tokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(VerifiedUser, nil)
+			},
+			expectedError: ErrPasswordNotSet,
+		},
+		{
+			name: "error when compare password",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				tokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(VerifiedUserWithProfileInfoAndPassword, nil)
+				mockPasswordManager.EXPECT().
+					CompareHashAndPassword(*VerifiedUserWithProfileInfoAndPassword.PasswordHash, []byte(dto.Password)).
+					Return(ErrUnexpected)
+			},
+			expectedError: ErrInvalidCredentials,
+		},
+		{
+			name: "error when generating token",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				mockTokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(VerifiedUserWithProfileInfoAndPassword, nil)
+				mockPasswordManager.EXPECT().
+					CompareHashAndPassword(*VerifiedUserWithProfileInfoAndPassword.PasswordHash, []byte(dto.Password)).
+					Return(nil)
+				mockTokenManager.EXPECT().GenerateToken(UserID).Return("", ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+		{
+			name: "error when creating session",
+			mockBehavior: func(
+				ctx context.Context,
+				mockUserService *mockuserservice.MockService,
+				mockPasswordManager *mockpassword.MockManager,
+				mockTokenManager *mockjwt.MockManager,
+				mockAuthRepo *mockauthdb.MockRepository,
+				dto auth.EmailPasswordRequest,
+				userAgent string,
+			) {
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).
+					Return(VerifiedUserWithProfileInfoAndPassword, nil)
+				mockPasswordManager.EXPECT().
+					CompareHashAndPassword(*VerifiedUserWithProfileInfoAndPassword.PasswordHash, []byte(dto.Password)).
+					Return(nil)
+				mockTokenManager.EXPECT().GenerateToken(UserID).Return(AccessToken, nil)
+				mockTokenManager.EXPECT().GetRefreshTokenTTL().Return(RefreshTokenTTL)
+				mockAuthRepo.EXPECT().CreateSession(ctx, gomock.Any(), userAgent, UserID, gomock.Any()).Return(ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockUserService := mockuserservice.NewMockService(ctrl)
+			mockTokenManager := mockjwt.NewMockManager(ctrl)
+			mockPasswordManager := mockpassword.NewMockManager(ctrl)
+			mockAuthRepo := mockauthdb.NewMockRepository(ctrl)
+
+			service := &service{
+				userService:     mockUserService,
+				tokenManager:    mockTokenManager,
+				passwordManager: mockPasswordManager,
+				authRepository:  mockAuthRepo,
+				logger:          zap.NewNop(),
+			}
+
+			ctx := context.Background()
+			tt.mockBehavior(
+				ctx,
+				mockUserService,
+				mockPasswordManager,
+				mockTokenManager,
+				mockAuthRepo,
+				auth.EmailPasswordRequest{
+					Email:    Email,
+					Password: Password,
+				},
+				UserAgent,
+			)
+
+			resp, err := service.Login(
+				ctx,
+				auth.EmailPasswordRequest{
+					Email:    Email,
+					Password: Password,
+				},
+				UserAgent,
+			)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.expectedError.Error())
+				require.Nil(t, resp)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, resp)
+				require.Equal(t, tt.expectedResp.User.ID, resp.User.ID)
+				require.Equal(t, tt.expectedResp.AccessToken, resp.AccessToken)
+				require.NotEmpty(t, resp.RefreshToken)
+			}
+		})
+	}
+}
+
+// TODO: Refresh
+
+func TestLogout(t *testing.T) {
+	type mockBehavior func(
+		ctx context.Context,
+		mockAuthRepo *mockauthdb.MockRepository,
+	)
+
+	tests := []struct {
+		name          string
+		mockBehavior  mockBehavior
+		expectedError error
+	}{
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockAuthRepo *mockauthdb.MockRepository,
+			) {
+				mockAuthRepo.EXPECT().DeleteNotExpirySessionByToken(ctx, gomock.Any()).Return(UserID, nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "success",
+			mockBehavior: func(
+				ctx context.Context,
+				mockAuthRepo *mockauthdb.MockRepository,
+			) {
+				mockAuthRepo.EXPECT().DeleteNotExpirySessionByToken(ctx, gomock.Any()).Return(UserID, ErrUnexpected)
+			},
+			expectedError: ErrUnexpected,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockAuthRepo := mockauthdb.NewMockRepository(ctrl)
+
+			service := &service{
+				authRepository: mockAuthRepo,
+				logger:         zap.NewNop(),
+			}
+
+			ctx := context.Background()
+			tt.mockBehavior(
+				ctx,
+				mockAuthRepo,
+			)
+
+			err := service.Logout(
+				ctx,
+				gomock.Any().String(),
+			)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func ptrStr(s string) *string {
+	return &s
 }

@@ -14,41 +14,29 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth/service"
 	mockauthservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service/mocks"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/mock/gomock"
 )
 
 func TestRegisterEmailHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		body      interface{}
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "test@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						RegisterEmail(gomock.Any(), auth.EmailRequest{
 							Email: "test@example.com",
@@ -59,16 +47,14 @@ func TestRegisterEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:   "Invalid JSON body",
-			fields: fields{service: mockService},
+			name: "Invalid JSON body",
 			args: args{
 				body: "invalid json",
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (empty email)",
-			fields: fields{service: mockService},
+			name: "Validation error (empty email)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "",
@@ -77,8 +63,7 @@ func TestRegisterEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (invalid email format)",
-			fields: fields{service: mockService},
+			name: "Validation error (invalid email format)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "not-an-email",
@@ -87,13 +72,12 @@ func TestRegisterEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Service returns known error (NotFound)",
-			fields: fields{service: mockService},
+			name: "Service returns known error (NotFound)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "test@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						RegisterEmail(gomock.Any(), auth.EmailRequest{
 							Email: "test@example.com",
@@ -104,13 +88,12 @@ func TestRegisterEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:   "Service returns unknown error (500)",
-			fields: fields{service: mockService},
+			name: "Service returns unknown error (500)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "test@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						RegisterEmail(gomock.Any(), auth.EmailRequest{
 							Email: "test@example.com",
@@ -124,12 +107,17 @@ func TestRegisterEmailHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			var bodyReader *bytes.Reader
@@ -153,38 +141,27 @@ func TestRegisterEmailHandler(t *testing.T) {
 }
 
 func TestRegisterVerifyHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		body      interface{}
 		userAgent string
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 		checkResponse      func(t *testing.T, rec *httptest.ResponseRecorder)
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				body: auth.CodeRequest{
 					Email: "test@example.com",
 					Code:  "123456",
 				},
 				userAgent: "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						RegisterVerify(gomock.Any(), auth.CodeRequest{
 							Email: "test@example.com",
@@ -225,8 +202,7 @@ func TestRegisterVerifyHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "Invalid JSON body",
-			fields: fields{service: mockService},
+			name: "Invalid JSON body",
 			args: args{
 				body:      "invalid json",
 				userAgent: "Go-http-client/1.1",
@@ -234,8 +210,7 @@ func TestRegisterVerifyHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (empty fields)",
-			fields: fields{service: mockService},
+			name: "Validation error (empty fields)",
 			args: args{
 				body:      auth.CodeRequest{},
 				userAgent: "Go-http-client/1.1",
@@ -243,15 +218,14 @@ func TestRegisterVerifyHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Service returns known AppError (NotFound)",
-			fields: fields{service: mockService},
+			name: "Service returns known AppError (NotFound)",
 			args: args{
 				body: auth.CodeRequest{
 					Email: "notfound@example.com",
 					Code:  "123456",
 				},
 				userAgent: "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						RegisterVerify(gomock.Any(), auth.CodeRequest{
 							Email: "notfound@example.com",
@@ -263,15 +237,14 @@ func TestRegisterVerifyHandler(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:   "Service returns unknown error (500)",
-			fields: fields{service: mockService},
+			name: "Service returns unknown error (500)",
 			args: args{
 				body: auth.CodeRequest{
 					Email: "fail@example.com",
 					Code:  "123456",
 				},
 				userAgent: "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						RegisterVerify(gomock.Any(), auth.CodeRequest{
 							Email: "fail@example.com",
@@ -286,12 +259,17 @@ func TestRegisterVerifyHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			var bodyReader *bytes.Reader
@@ -320,14 +298,9 @@ func TestRegisterVerifyHandler(t *testing.T) {
 }
 
 func TestVerifyResendHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
 	type args struct {
 		body      interface{}
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
@@ -341,7 +314,7 @@ func TestVerifyResendHandler(t *testing.T) {
 				body: auth.EmailRequest{
 					Email: "test@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						VerifyResend(gomock.Any(), auth.EmailRequest{
 							Email: "test@example.com",
@@ -371,7 +344,7 @@ func TestVerifyResendHandler(t *testing.T) {
 				body: auth.EmailRequest{
 					Email: "notfound@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						VerifyResend(gomock.Any(), auth.EmailRequest{
 							Email: "notfound@example.com",
@@ -387,7 +360,7 @@ func TestVerifyResendHandler(t *testing.T) {
 				body: auth.EmailRequest{
 					Email: "test@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						VerifyResend(gomock.Any(), auth.EmailRequest{
 							Email: "test@example.com",
@@ -401,8 +374,13 @@ func TestVerifyResendHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
@@ -430,30 +408,19 @@ func TestVerifyResendHandler(t *testing.T) {
 }
 
 func TestRegisterProfileHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		body      interface{}
 		userID    interface{}
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				body: auth.ProfileRequest{
 					Username:  "testuser",
@@ -461,7 +428,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 					LastName:  "User",
 				},
 				userID: 1,
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						SaveProfileInfo(gomock.Any(), 1, auth.ProfileRequest{
 							Username:  "testuser",
@@ -482,8 +449,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:   "Invalid JSON",
-			fields: fields{service: mockService},
+			name: "Invalid JSON",
 			args: args{
 				body:   "invalid json",
 				userID: 1,
@@ -491,8 +457,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (empty fields)",
-			fields: fields{service: mockService},
+			name: "Validation error (empty fields)",
 			args: args{
 				body:   auth.ProfileRequest{},
 				userID: 1,
@@ -500,8 +465,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Service returns known error (NotFound)",
-			fields: fields{service: mockService},
+			name: "Service returns known error (NotFound)",
 			args: args{
 				body: auth.ProfileRequest{
 					Username:  "testuser",
@@ -509,7 +473,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 					LastName:  "User",
 				},
 				userID: 1,
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						SaveProfileInfo(gomock.Any(), 1, gomock.Any()).
 						Return(nil, apperror.ErrNotFound)
@@ -518,8 +482,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:   "Service returns unknown error (500)",
-			fields: fields{service: mockService},
+			name: "Service returns unknown error (500)",
 			args: args{
 				body: auth.ProfileRequest{
 					Username:  "testuser",
@@ -527,7 +490,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 					LastName:  "User",
 				},
 				userID: 1,
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						SaveProfileInfo(gomock.Any(), 1, gomock.Any()).
 						Return(nil, errors.New("internal error"))
@@ -539,12 +502,17 @@ func TestRegisterProfileHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			var bodyReader *bytes.Reader
@@ -575,34 +543,23 @@ func TestRegisterProfileHandler(t *testing.T) {
 }
 
 func TestRegisterPasswordHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		body      interface{}
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				body: auth.PasswordRequest{
 					Password: "strongpassword",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						SavePassword(gomock.Any(), 1, auth.PasswordRequest{
 							Password: "strongpassword",
@@ -613,16 +570,14 @@ func TestRegisterPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:   "Invalid JSON body",
-			fields: fields{service: mockService},
+			name: "Invalid JSON body",
 			args: args{
 				body: "invalid json",
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (empty password)",
-			fields: fields{service: mockService},
+			name: "Validation error (empty password)",
 			args: args{
 				body: auth.PasswordRequest{
 					Password: "",
@@ -631,8 +586,7 @@ func TestRegisterPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (too short password)",
-			fields: fields{service: mockService},
+			name: "Validation error (too short password)",
 			args: args{
 				body: auth.PasswordRequest{
 					Password: "short",
@@ -641,13 +595,12 @@ func TestRegisterPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Service returns known error (Unauthorized)",
-			fields: fields{service: mockService},
+			name: "Service returns known error (Unauthorized)",
 			args: args{
 				body: auth.PasswordRequest{
 					Password: "strongpassword",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						SavePassword(gomock.Any(), 1, auth.PasswordRequest{
 							Password: "strongpassword",
@@ -658,13 +611,12 @@ func TestRegisterPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusUnauthorized,
 		},
 		{
-			name:   "Service returns unknown error (500)",
-			fields: fields{service: mockService},
+			name: "Service returns unknown error (500)",
 			args: args{
 				body: auth.PasswordRequest{
 					Password: "strongpassword",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						SavePassword(gomock.Any(), 1, auth.PasswordRequest{
 							Password: "strongpassword",
@@ -678,12 +630,17 @@ func TestRegisterPasswordHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			var bodyReader *bytes.Reader
@@ -711,34 +668,23 @@ func TestRegisterPasswordHandler(t *testing.T) {
 }
 
 func TestLoginEmailHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		body      interface{}
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "test@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						GetUserByEmail(gomock.Any(), auth.EmailRequest{
 							Email: "test@example.com",
@@ -754,16 +700,14 @@ func TestLoginEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:   "Invalid JSON body",
-			fields: fields{service: mockService},
+			name: "Invalid JSON body",
 			args: args{
 				body: "invalid json",
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (empty email)",
-			fields: fields{service: mockService},
+			name: "Validation error (empty email)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "",
@@ -772,8 +716,7 @@ func TestLoginEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error (invalid email format)",
-			fields: fields{service: mockService},
+			name: "Validation error (invalid email format)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "invalid-email",
@@ -782,13 +725,12 @@ func TestLoginEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Service returns not found error",
-			fields: fields{service: mockService},
+			name: "Service returns not found error",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "notfound@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						GetUserByEmail(gomock.Any(), auth.EmailRequest{
 							Email: "notfound@example.com",
@@ -799,13 +741,12 @@ func TestLoginEmailHandler(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:   "Service returns unknown error (500)",
-			fields: fields{service: mockService},
+			name: "Service returns unknown error (500)",
 			args: args{
 				body: auth.EmailRequest{
 					Email: "error@example.com",
 				},
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						GetUserByEmail(gomock.Any(), auth.EmailRequest{
 							Email: "error@example.com",
@@ -819,12 +760,17 @@ func TestLoginEmailHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			var bodyReader *bytes.Reader
@@ -848,38 +794,27 @@ func TestLoginEmailHandler(t *testing.T) {
 }
 
 func TestLoginPasswordHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		body      interface{}
 		userAgent string
-		mockSetup func()
+		mockSetup func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 		checkResponse      func(t *testing.T, rec *httptest.ResponseRecorder)
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				body: auth.EmailPasswordRequest{
 					Email:    "test@example.com",
 					Password: "password123",
 				},
 				userAgent: "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Login(gomock.Any(), auth.EmailPasswordRequest{
 							Email:    "test@example.com",
@@ -919,8 +854,7 @@ func TestLoginPasswordHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "Invalid JSON body",
-			fields: fields{service: mockService},
+			name: "Invalid JSON body",
 			args: args{
 				body:      "invalid json",
 				userAgent: "Go-http-client/1.1",
@@ -928,16 +862,14 @@ func TestLoginPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error: empty fields",
-			fields: fields{service: mockService},
+			name: "Validation error: empty fields",
 			args: args{
 				body: auth.EmailPasswordRequest{},
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error: invalid email",
-			fields: fields{service: mockService},
+			name: "Validation error: invalid email",
 			args: args{
 				body: auth.EmailPasswordRequest{
 					Email:    "invalid-email",
@@ -947,8 +879,7 @@ func TestLoginPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Validation error: short password",
-			fields: fields{service: mockService},
+			name: "Validation error: short password",
 			args: args{
 				body: auth.EmailPasswordRequest{
 					Email:    "test@example.com",
@@ -958,15 +889,14 @@ func TestLoginPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:   "Service returns unauthorized",
-			fields: fields{service: mockService},
+			name: "Service returns unauthorized",
 			args: args{
 				body: auth.EmailPasswordRequest{
 					Email:    "unauth@example.com",
 					Password: "password123",
 				},
 				userAgent: "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Login(gomock.Any(), auth.EmailPasswordRequest{
 							Email:    "unauth@example.com",
@@ -978,15 +908,14 @@ func TestLoginPasswordHandler(t *testing.T) {
 			expectedStatusCode: http.StatusUnauthorized,
 		},
 		{
-			name:   "Service returns unknown error",
-			fields: fields{service: mockService},
+			name: "Service returns unknown error",
 			args: args{
 				body: auth.EmailPasswordRequest{
 					Email:    "fail@example.com",
 					Password: "password123",
 				},
 				userAgent: "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Login(gomock.Any(), auth.EmailPasswordRequest{
 							Email:    "fail@example.com",
@@ -1001,12 +930,17 @@ func TestLoginPasswordHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			var bodyReader *bytes.Reader
@@ -1036,35 +970,24 @@ func TestLoginPasswordHandler(t *testing.T) {
 }
 
 func TestRefreshHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		cookieValue string
 		userAgent   string
-		mockSetup   func()
+		mockSetup   func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 		checkResponse      func(t *testing.T, rec *httptest.ResponseRecorder)
 	}{
 		{
-			name:   "Success case",
-			fields: fields{service: mockService},
+			name: "Success case",
 			args: args{
 				cookieValue: "valid_refresh_token",
 				userAgent:   "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Refresh(gomock.Any(), "valid_refresh_token", "Go-http-client/1.1").
 						Return(&auth.Tokens{
@@ -1092,20 +1015,18 @@ func TestRefreshHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "Missing cookie",
-			fields: fields{service: mockService},
+			name: "Missing cookie",
 			args: args{
 				userAgent: "Go-http-client/1.1",
 			},
 			expectedStatusCode: http.StatusUnauthorized,
 		},
 		{
-			name:   "Service returns error",
-			fields: fields{service: mockService},
+			name: "Service returns error",
 			args: args{
 				cookieValue: "invalid_refresh_token",
 				userAgent:   "Go-http-client/1.1",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Refresh(gomock.Any(), "invalid_refresh_token", "Go-http-client/1.1").
 						Return(nil, errors.New("invalid token"))
@@ -1117,12 +1038,17 @@ func TestRefreshHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/refresh", nil)
@@ -1149,33 +1075,22 @@ func TestRefreshHandler(t *testing.T) {
 }
 
 func TestLogoutHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mockauthservice.NewMockService(ctrl)
-
-	type fields struct {
-		service service.Service
-	}
-
 	type args struct {
 		cookieValue string
-		mockSetup   func()
+		mockSetup   func(mockService *mockauthservice.MockService)
 	}
 
 	tests := []struct {
 		name               string
-		fields             fields
 		args               args
 		expectedStatusCode int
 		checkResponse      func(t *testing.T, rec *httptest.ResponseRecorder)
 	}{
 		{
-			name:   "Cookie present - success logout and clear cookie",
-			fields: fields{service: mockService},
+			name: "Cookie present - success logout and clear cookie",
 			args: args{
 				cookieValue: "valid_refresh_token",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Logout(gomock.Any(), "valid_refresh_token").
 						Return(nil)
@@ -1191,10 +1106,9 @@ func TestLogoutHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "Cookie absent - no call to service, no cookie set",
-			fields: fields{service: mockService},
+			name: "Cookie absent - no call to service, no cookie set",
 			args: args{
-				mockSetup: func() {},
+				mockSetup: func(mockService *mockauthservice.MockService) {},
 			},
 			expectedStatusCode: http.StatusOK,
 			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
@@ -1203,11 +1117,10 @@ func TestLogoutHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "Cookie present - service returns error (ignored)",
-			fields: fields{service: mockService},
+			name: "Cookie present - service returns error (ignored)",
 			args: args{
 				cookieValue: "bad_token",
-				mockSetup: func() {
+				mockSetup: func(mockService *mockauthservice.MockService) {
 					mockService.EXPECT().
 						Logout(gomock.Any(), "bad_token").
 						Return(errors.New("logout error"))
@@ -1225,12 +1138,17 @@ func TestLogoutHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockService := mockauthservice.NewMockService(ctrl)
+
 			if tt.args.mockSetup != nil {
-				tt.args.mockSetup()
+				tt.args.mockSetup(mockService)
 			}
 
 			h := &handler{
-				service: tt.fields.service,
+				service: mockService,
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/logout", nil)
@@ -1254,7 +1172,6 @@ func TestLogoutHandler(t *testing.T) {
 		})
 	}
 }
-
 
 func ptrStr(s string) *string {
 	return &s

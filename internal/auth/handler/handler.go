@@ -26,6 +26,7 @@ type handler struct {
 	logger         *zap.Logger
 }
 
+// TODO: покрыть тестами
 func NewHandler(service service.Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
 		service:        service,
@@ -34,6 +35,7 @@ func NewHandler(service service.Service, authMiddleware func(http.Handler) http.
 	}
 }
 
+// TODO: покрыть тестами
 func (h *handler) Register(router chi.Router) {
 	router.Route("/auth", func(authRouter chi.Router) {
 		authRouter.Route("/register", func(registerRouter chi.Router) {

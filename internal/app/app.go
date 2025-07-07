@@ -12,6 +12,7 @@ import (
 	authdb "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	authhandler "github.com/vetrovegor/kushfinds-backend/internal/auth/handler"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
+	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
 	authservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	codedb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
@@ -76,6 +77,8 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 
 		mailManager := auth.NewMailManager(cfg.SMTP)
 
+		passwordManager := password.New(log)
+
 		txManager := pgtx.NewPgManager(pgClient)
 
 		authService := authservice.NewService(
@@ -84,6 +87,7 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 			codeService,
 			tokenManager,
 			mailManager,
+			passwordManager,
 			txManager,
 			log,
 		)

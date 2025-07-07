@@ -11,11 +11,11 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
+	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -46,32 +46,35 @@ type Service interface {
 
 // TODO: рефакторить
 type service struct {
-	authRepository authDB.Repository
-	userService    user.Service
-	codeService    code.Service
-	tokenManager   jwtauth.TokenManager
-	mailManager    auth.MailManager
-	txManager      transactor.Manager
-	logger         *zap.Logger
+	authRepository  authDB.Repository
+	userService     user.Service
+	codeService     code.Service
+	tokenManager    jwtauth.Manager
+	mailManager     auth.MailManager
+	passwordManager password.Manager
+	txManager       transactor.Manager
+	logger          *zap.Logger
 }
 
 func NewService(
 	authRepository authDB.Repository,
 	userService user.Service,
 	codeService code.Service,
-	tokenManager jwtauth.TokenManager,
+	tokenManager jwtauth.Manager,
 	mailManager auth.MailManager,
+	passwordManager password.Manager,
 	txManager transactor.Manager,
 	logger *zap.Logger,
 ) Service {
 	return &service{
-		authRepository: authRepository,
-		userService:    userService,
-		codeService:    codeService,
-		tokenManager:   tokenManager,
-		mailManager:    mailManager,
-		txManager:      txManager,
-		logger:         logger,
+		authRepository:  authRepository,
+		userService:     userService,
+		codeService:     codeService,
+		tokenManager:    tokenManager,
+		mailManager:     mailManager,
+		passwordManager: passwordManager,
+		txManager:       txManager,
+		logger:          logger,
 	}
 }
 
@@ -268,13 +271,12 @@ func (s *service) SavePassword(ctx context.Context, userID int, dto auth.Passwor
 		return err
 	}
 
-	if existingUser.PasswordHash != nil {
+	if existingUser.IsPasswordSet {
 		return ErrPasswordAlreadySet
 	}
 
-	passHash, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
+	passHash, err := s.passwordManager.GenerateHashFromPassword([]byte(dto.Password))
 	if err != nil {
-		s.logger.Error("unexpected error when hashing password", zap.Error(err))
 		return err
 	}
 
@@ -312,11 +314,11 @@ func (s *service) Login(ctx context.Context, dto auth.EmailPasswordRequest, user
 		return nil, ErrUserNotVerified
 	}
 
-	if existingUser.PasswordHash == nil {
+	if !existingUser.IsPasswordSet {
 		return nil, ErrPasswordNotSet
 	}
 
-	if err := bcrypt.CompareHashAndPassword(*existingUser.PasswordHash, []byte(dto.Password)); err != nil {
+	if err := s.passwordManager.CompareHashAndPassword(*existingUser.PasswordHash, []byte(dto.Password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
 
@@ -333,7 +335,7 @@ func (s *service) Login(ctx context.Context, dto auth.EmailPasswordRequest, user
 
 func (s *service) Refresh(ctx context.Context, token string, userAgent string) (*auth.Tokens, error) {
 	var tokens *auth.Tokens
-	
+
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
 		if err != nil {
@@ -348,7 +350,7 @@ func (s *service) Refresh(ctx context.Context, token string, userAgent string) (
 			return err
 		}
 
-		return  nil
+		return nil
 	})
 
 	if err != nil {

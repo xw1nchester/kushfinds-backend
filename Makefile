@@ -7,6 +7,11 @@ swagger:
 gen:
 	go generate ./...
 
+test.unit:
+	go test ./internal/... -count=1 -v
+
+# test.integration
+
 cover:
 	go test -count=1 -race -coverprofile=coverage.out ./internal/...
 	go tool cover -html=coverage.out
