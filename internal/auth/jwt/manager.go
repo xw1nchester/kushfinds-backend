@@ -7,18 +7,11 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 )
 
-//go:generate mockgen -source=manager.go -destination=mocks/mock.go -package=mockjwt
-type Manager interface {
-	GenerateToken(userID int) (string, error)
-	GetRefreshTokenTTL() time.Duration
-	ParseToken(tokenStr string) (int, error)
-}
-
 type manager struct {
 	jwtConfig config.JWT
 }
 
-func NewTokenManager(jwtConfig config.JWT) Manager {
+func NewTokenManager(jwtConfig config.JWT) *manager {
 	return &manager{
 		jwtConfig: jwtConfig,
 	}

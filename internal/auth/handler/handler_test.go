@@ -14,7 +14,7 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	mockauthservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service/mocks"
+	mockauthservice "github.com/vetrovegor/kushfinds-backend/internal/auth/handler/mocks"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/mock/gomock"
 )

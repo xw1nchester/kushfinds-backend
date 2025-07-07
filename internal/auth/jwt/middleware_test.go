@@ -16,7 +16,7 @@ func TestAuthMiddleware(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTokenManager := mockjwt.NewMockManager(ctrl) // предполагается, что мок сгенерирован
+	mockTokenManager := mockjwt.NewMockJwtManager(ctrl) // предполагается, что мок сгенерирован
 	logger := zap.NewNop()
 	middleware := NewAuthMiddleware(logger, mockTokenManager)
 

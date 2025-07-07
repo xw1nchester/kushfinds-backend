@@ -9,26 +9,25 @@ import (
 	"go.uber.org/zap"
 )
 
-//go:generate mockgen -source=service.go -destination=mocks/mock.go -package=mockuserservice
-type Service interface {
-	GetByID(ctx context.Context, id int) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
+type Repository interface {
+	GetByID(ctx context.Context, id int) (*db.User, error)
+	GetByEmail(ctx context.Context, email string) (*db.User, error)
 	Create(ctx context.Context, email string) (int, error)
-	Verify(ctx context.Context, id int) (*User, error)
+	Verify(ctx context.Context, id int) (*db.User, error)
 	CheckUsernameIsAvailable(ctx context.Context, username string) (bool, error)
-	SetProfileInfo(ctx context.Context, data *User) (*User, error)
+	SetProfileInfo(ctx context.Context, user db.User) (*db.User, error)
 	SetPassword(ctx context.Context, id int, passwordHash []byte) error
 }
 
 type service struct {
-	repository db.Repository
+	repository Repository
 	logger     *zap.Logger
 }
 
 func NewService(
-	repository db.Repository,
+	repository Repository,
 	logger *zap.Logger,
-) Service {
+) *service {
 	return &service{
 		repository: repository,
 		logger:     logger,

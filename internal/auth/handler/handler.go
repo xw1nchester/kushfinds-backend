@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,8 +10,8 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
+	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 )
 
@@ -20,14 +21,27 @@ const (
 
 var validate = validator.New()
 
+//go:generate mockgen -source=handler.go -destination=mocks/mock.go -package=mockauthservice
+type Service interface {
+	RegisterEmail(ctx context.Context, dto auth.EmailRequest) error
+	RegisterVerify(ctx context.Context, dto auth.CodeRequest, userAgent string) (*auth.AuthFullResponse, error)
+	VerifyResend(ctx context.Context, dto auth.EmailRequest) error
+	SaveProfileInfo(ctx context.Context, userID int, dto auth.ProfileRequest) (*user.UserResponse, error)
+	SavePassword(ctx context.Context, userID int, dto auth.PasswordRequest) error
+	GetUserByEmail(ctx context.Context, dto auth.EmailRequest) (*user.UserResponse, error)
+	Login(ctx context.Context, dto auth.EmailPasswordRequest, userAgent string) (*auth.AuthFullResponse, error)
+	Refresh(ctx context.Context, token string, userAgent string) (*auth.Tokens, error)
+	Logout(ctx context.Context, token string) error
+}
+
 type handler struct {
-	service        service.Service
+	service        Service
 	authMiddleware func(http.Handler) http.Handler
 	logger         *zap.Logger
 }
 
 // TODO: покрыть тестами
-func NewHandler(service service.Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
+func NewHandler(service Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
 		service:        service,
 		authMiddleware: authMiddleware,

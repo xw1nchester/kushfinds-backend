@@ -5,17 +5,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:generate mockgen -source=manager.go -destination=mocks/mock.go -package=mockpassword
-type Manager interface {
-	GenerateHashFromPassword(password []byte) ([]byte, error)
-	CompareHashAndPassword(hashedPassword []byte, password []byte) error
-}
-
 type manager struct {
 	logger *zap.Logger
 }
 
-func New(logger *zap.Logger) Manager {
+func New(logger *zap.Logger) *manager {
 	return &manager{
 		logger: logger,
 	}

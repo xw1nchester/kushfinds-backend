@@ -10,8 +10,6 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
-	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
 	"github.com/vetrovegor/kushfinds-backend/internal/code"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
@@ -31,41 +29,68 @@ var (
 	ErrPasswordNotSet        = apperror.NewAppError("the user does not have a password set")
 )
 
-//go:generate mockgen -source=service.go -destination=mocks/mock.go -package=mockauthservice
-type Service interface {
-	RegisterEmail(ctx context.Context, dto auth.EmailRequest) error
-	RegisterVerify(ctx context.Context, dto auth.CodeRequest, userAgent string) (*auth.AuthFullResponse, error)
-	VerifyResend(ctx context.Context, dto auth.EmailRequest) error
-	SaveProfileInfo(ctx context.Context, userID int, dto auth.ProfileRequest) (*user.UserResponse, error)
-	SavePassword(ctx context.Context, userID int, dto auth.PasswordRequest) error
-	GetUserByEmail(ctx context.Context, dto auth.EmailRequest) (*user.UserResponse, error)
-	Login(ctx context.Context, dto auth.EmailPasswordRequest, userAgent string) (*auth.AuthFullResponse, error)
-	Refresh(ctx context.Context, token string, userAgent string) (*auth.Tokens, error)
-	Logout(ctx context.Context, token string) error
+//go:generate mockgen -destination=mocks/repo/mock.go -package=mockauthrepo . Repository
+type Repository interface {
+	CreateSession(ctx context.Context, token string, userAgent string, userID int, expiryDate time.Time) error
+	DeleteNotExpirySessionByToken(ctx context.Context, token string) (int, error)
+}
+
+//go:generate mockgen -destination=mocks/user/mock.go -package=mockuserservice . UserService
+type UserService interface {
+	GetByID(ctx context.Context, id int) (*user.User, error)
+	GetByEmail(ctx context.Context, email string) (*user.User, error)
+	Create(ctx context.Context, email string) (int, error)
+	Verify(ctx context.Context, id int) (*user.User, error)
+	CheckUsernameIsAvailable(ctx context.Context, username string) (bool, error)
+	SetProfileInfo(ctx context.Context, data *user.User) (*user.User, error)
+	SetPassword(ctx context.Context, id int, passwordHash []byte) error
+}
+
+//go:generate mockgen -destination=mocks/code/mock.go -package=mockcodeservice . CodeService
+type CodeService interface {
+	GenerateVerify(ctx context.Context, userID int) (string, error)
+	ValidateVerify(ctx context.Context, code string, userID int) error
+}
+
+//go:generate mockgen -destination=mocks/mail/mock.go -package=mockmail . MailManager
+type MailManager interface {
+	SendMail(subject string, body string, to []string) error
+}
+
+//go:generate mockgen -destination=mocks/token/mock.go -package=mocktoken . TokenManager
+type TokenManager interface {
+	GenerateToken(userID int) (string, error)
+	GetRefreshTokenTTL() time.Duration
+}
+
+//go:generate mockgen -destination=mocks/password/mock.go -package=mockpassword . PasswordManager
+type PasswordManager interface {
+	GenerateHashFromPassword(password []byte) ([]byte, error)
+	CompareHashAndPassword(hashedPassword []byte, password []byte) error
 }
 
 // TODO: рефакторить
 type service struct {
-	authRepository  authDB.Repository
-	userService     user.Service
-	codeService     code.Service
-	tokenManager    jwtauth.Manager
-	mailManager     auth.MailManager
-	passwordManager password.Manager
+	authRepository  Repository
+	userService     UserService
+	codeService     CodeService
+	tokenManager    TokenManager
+	mailManager     MailManager
+	passwordManager PasswordManager
 	txManager       transactor.Manager
 	logger          *zap.Logger
 }
 
 func NewService(
-	authRepository authDB.Repository,
-	userService user.Service,
-	codeService code.Service,
-	tokenManager jwtauth.Manager,
-	mailManager auth.MailManager,
-	passwordManager password.Manager,
+	authRepository Repository,
+	userService UserService,
+	codeService CodeService,
+	tokenManager TokenManager,
+	mailManager MailManager,
+	passwordManager PasswordManager,
 	txManager transactor.Manager,
 	logger *zap.Logger,
-) Service {
+) *service {
 	return &service{
 		authRepository:  authRepository,
 		userService:     userService,
@@ -336,7 +361,7 @@ func (s *service) Login(ctx context.Context, dto auth.EmailPasswordRequest, user
 func (s *service) Refresh(ctx context.Context, token string, userAgent string) (*auth.Tokens, error) {
 	var tokens *auth.Tokens
 
-	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+	if err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		userID, err := s.authRepository.DeleteNotExpirySessionByToken(ctx, token)
 		if err != nil {
 			if !errors.Is(err, authDB.ErrNotFound) {
@@ -351,9 +376,7 @@ func (s *service) Refresh(ctx context.Context, token string, userAgent string) (
 		}
 
 		return nil
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 

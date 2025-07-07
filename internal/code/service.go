@@ -24,20 +24,18 @@ var (
 	ErrCodeNotFound    = errors.New("code not found")
 )
 
-//go:generate mockgen -source=service.go -destination=mocks/mock.go -package=mockcodeservice
-type Service interface {
-	GenerateVerify(ctx context.Context, userID int) (string, error)
-	GenerateRecoveryPassword(ctx context.Context, userID int) (string, error)
-	GenerateChangePassword(ctx context.Context, userID int) (string, error)
-	ValidateVerify(ctx context.Context, code string, userID int) error
+type Repository interface {
+	Create(ctx context.Context, code string, codeType string, userID int, retryDate time.Time, expiryDate time.Time) error
+	CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) (bool, error)
+	CheckNotExpiryCodeExists(ctx context.Context, code string, codeType string, userID int) (bool, error)
 }
 
 type service struct {
-	repository db.Repository
+	repository Repository
 	logger     *zap.Logger
 }
 
-func NewService(repository db.Repository, logger *zap.Logger) Service {
+func NewService(repository Repository, logger *zap.Logger) *service {
 	return &service{
 		repository: repository,
 		logger:     logger,

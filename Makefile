@@ -1,6 +1,9 @@
 dev:
 	export CONFIG_PATH=config/local.yml && air
 
+up:
+	docker compose up --build
+
 swagger:
 	swag fmt && swag init -g cmd/kushfinds/main.go
 

@@ -10,7 +10,12 @@ import (
 
 type UserIDContextKey struct{}
 
-func NewAuthMiddleware(logger *zap.Logger, tokenManager Manager) func(http.Handler) http.Handler {
+//go:generate mockgen -source=middleware.go -destination=mocks/mock.go -package=mockjwt
+type JwtManager interface {
+	ParseToken(tokenStr string) (int, error)
+}
+
+func NewAuthMiddleware(logger *zap.Logger, tokenManager JwtManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")

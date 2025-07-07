@@ -13,7 +13,7 @@ migrate -path ./migrations -database postgres://postgres:postgres@localhost:5432
 ---
 
 Запуск приложения (способ 1):  
-CONFIG_PATH=config/local.yml docker compose up  
+docker compose up --build  
 
 Запуск приложения (способ 2):  
 go run cmd/kushfinds/main.go -config=config/local.yml  

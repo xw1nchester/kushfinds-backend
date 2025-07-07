@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -10,6 +11,10 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
 	"go.uber.org/zap"
 )
+
+type Service interface {
+	GetByID(ctx context.Context, id int) (*User, error)
+}
 
 type handler struct {
 	service        Service
