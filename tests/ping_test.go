@@ -1,20 +1,20 @@
 package tests
 
 import (
-	"net/url"
-	"testing"
-
-	"github.com/gavv/httpexpect/v2"
+	"fmt"
+	"io"
+	"net/http"
 )
 
-func TestPing(t *testing.T) {
-	u := url.URL{
-		Scheme: "http",
-		Host:   "localhost:8080",
-	}
-	e := httpexpect.Default(t, u.String())
+func (s *APITestSuite) TestPing() {
+	response, err := http.Get(fmt.Sprintf("%s/ping", s.baseUrl))
+	s.NoError(err)
 
-	e.GET("/api/ping").
-		Expect().
-		Status(200) 
+	byteBody, err := io.ReadAll(response.Body)
+	s.NoError(err)
+
+	response.Body.Close()
+
+	s.Equal(http.StatusOK, response.StatusCode)
+	s.Equal("pong", string(byteBody))
 }

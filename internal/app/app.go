@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -32,6 +33,7 @@ type App struct {
 }
 
 func NewApp(log *zap.Logger, cfg config.Config) *App {
+	// TODO: возможно стоит вынести в main.go, чтобы не создавать доп инстанс в тестах
 	pgClient, err := pgclient.NewClient(
 		context.TODO(),
 		pgclient.Config{
@@ -51,7 +53,7 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 	router.Use(
 		LoggingMiddleware(log),
 		cors.Handler(cors.Options{
-			AllowedOrigins: cfg.AllowedOrigins,
+			AllowedOrigins:   cfg.AllowedOrigins,
 			AllowCredentials: true,
 		}),
 		middleware.Recoverer,
@@ -121,9 +123,13 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 }
 
 func (a *App) MustRun() {
-	if err := a.HTTPServer.ListenAndServe(); err != nil {
+	if err := a.HTTPServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		panic("failed to start server")
 	}
+}
+
+func (a *App) Shutdown(ctx context.Context) error {
+	return a.HTTPServer.Shutdown(ctx)
 }
 
 func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {

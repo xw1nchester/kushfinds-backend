@@ -13,7 +13,8 @@ gen:
 test.unit:
 	go test ./internal/... -count=1 -v
 
-# test.integration
+test.integration:
+	go test ./tests/... -count=1 -v
 
 cover:
 	go test -count=1 -race -coverprofile=coverage.out ./internal/...

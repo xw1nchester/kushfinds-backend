@@ -40,5 +40,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
+	// app.Shutdown(context.Background())
+
 	log.Info("server shutting down")
 }
