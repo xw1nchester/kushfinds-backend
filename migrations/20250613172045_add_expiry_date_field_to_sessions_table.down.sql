@@ -1,2 +1,2 @@
 ALTER TABLE sessions
-  DROP COLUMN expiry_date;
+  DROP COLUMN IF EXISTS expiry_date;

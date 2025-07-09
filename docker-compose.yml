@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:16-alpine
-    user: postgres
     ports:
       - "5433:5432"
     environment:
@@ -34,7 +33,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - CONFIG_PATH=config/local.yml
+      - CONFIG_PATH=config/docker.yml
     volumes:
       - ./config:/config
     depends_on:

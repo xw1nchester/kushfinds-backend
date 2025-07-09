@@ -1,7 +1,7 @@
-DROP TABLE sessions;
+DROP TABLE IF EXISTS sessions;
 
-DROP TABLE codes;
+DROP TABLE IF EXISTS codes;
 
-DROP TYPE code_type;
+DROP TYPE IF EXISTS code_type;
 
-DROP TABLE users;
+DROP TABLE IF EXISTS users;
