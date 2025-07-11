@@ -133,7 +133,7 @@ func (s *service) RegisterEmail(ctx context.Context, dto auth.EmailRequest) erro
 	}
 
 	if err == nil {
-		return apperror.NewAppError("the user with this email already exists")
+		return ErrEmailAlreadyExists
 	}
 
 	var generatedCode string

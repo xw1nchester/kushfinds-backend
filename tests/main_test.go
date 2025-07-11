@@ -14,18 +14,24 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
 	"github.com/vetrovegor/kushfinds-backend/internal/app"
+	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
 )
 
+type TokenManager interface {
+	GenerateToken(userID int) (string, error)
+}
+
 type APITestSuite struct {
 	suite.Suite
 	cfg *config.Config
 	dbClient *pgxpool.Pool
-	logger   *zap.Logger
+	logger   *zap.SugaredLogger
 	baseUrl  string
 	app      *app.App
+	tokenManager TokenManager
 }
 
 func TestSuite(t *testing.T) {
@@ -59,15 +65,17 @@ func (s *APITestSuite) SetupSuite() {
 
 	s.cfg = cfg
 	s.dbClient = pgClient
-	s.logger = log
+	s.logger = log.Sugar()
 	s.baseUrl = fmt.Sprintf("http://localhost%s/api", cfg.HTTPServer.Address)
 	s.app = app
+	s.tokenManager = jwtauth.NewTokenManager(cfg.JWT)
 
 	go func() {
 		app.MustRun()
 	}()
 
-	log.Info("server started", zap.String("addr", cfg.Address))
+	err = s.applyMigrations(true)
+	s.Require().NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
 }
@@ -76,19 +84,20 @@ func (s *APITestSuite) TearDownSuite() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := s.app.Shutdown(ctx)
-	s.Require().NoError(err)
+	s.Require().NoError(s.app.Shutdown(ctx))
+
+	s.Require().NoError(s.applyMigrations(false))
 }
 
 func (s *APITestSuite) SetupTest() {
-	s.applyMigrations(true)
+	s.Require().NoError(s.populateDb())
 }
 
 func (s *APITestSuite) TearDownTest() {
-	s.applyMigrations(false)
+	s.Require().NoError(s.cleanupDb())
 }
 
-func (s *APITestSuite) applyMigrations(isUp bool) {
+func (s *APITestSuite) applyMigrations(isUp bool) error {
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		s.cfg.PostgreSQL.Username,
@@ -101,26 +110,48 @@ func (s *APITestSuite) applyMigrations(isUp bool) {
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
 		"postgres", driver)
-	s.Require().NoError(err)
-
-	var migrationErr error
-
-	if isUp {
-		migrationErr = m.Up()
-	} else {
-		migrationErr = m.Down()
+	if err != nil {
+		return err
 	}
 
-	s.Require().NoError(migrationErr)
+	if isUp {
+		return m.Up()
+	}
+
+	return m.Down()
+}
+
+func (s *APITestSuite) populateDb() error {
+	query := `
+		INSERT INTO users (email, username, first_name, last_name, password_hash, is_verified) 
+		VALUES 
+		('user1@mail.ru', NULL, NULL, NULL, NULL, false),
+		('user2@mail.ru', NULL, NULL, NULL, NULL, true),
+		('user3@mail.ru', 'username', 'John', 'Doe', NULL, true);
+	`
+
+	_, err := s.dbClient.Exec(context.Background(), query)
+	
+	return err
+}
+
+func (s *APITestSuite) cleanupDb() error {
+	query := `
+		DELETE FROM users;
+	`
+
+	_, err := s.dbClient.Exec(context.Background(), query)
+	
+	return err
 }
