@@ -45,7 +45,7 @@ func TestSuite(t *testing.T) {
 func (s *APITestSuite) SetupSuite() {
 	cfg := config.MustLoadByPath("../config/test.yml")
 
-	pgClient, err := pgclient.NewClient(
+	pgClient, err := pgclient.New(
 		context.TODO(),
 		pgclient.Config{
 			Username: cfg.PostgreSQL.Username,
@@ -61,14 +61,14 @@ func (s *APITestSuite) SetupSuite() {
 	log, _ := zap.NewDevelopment()
 	defer log.Sync()
 
-	app := app.NewApp(log, *cfg)
+	app := app.New(log, *cfg)
 
 	s.cfg = cfg
 	s.dbClient = pgClient
 	s.logger = log.Sugar()
 	s.baseUrl = fmt.Sprintf("http://localhost%s/api", cfg.HTTPServer.Address)
 	s.app = app
-	s.tokenManager = jwtauth.NewTokenManager(cfg.JWT)
+	s.tokenManager = jwtauth.NewManager(cfg.JWT)
 
 	go func() {
 		app.MustRun()

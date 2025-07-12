@@ -10,7 +10,7 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
-	"github.com/vetrovegor/kushfinds-backend/internal/code"
+	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
 	"go.uber.org/zap"
@@ -81,7 +81,7 @@ type service struct {
 	logger          *zap.Logger
 }
 
-func NewService(
+func New(
 	authRepository Repository,
 	userService UserService,
 	codeService CodeService,
@@ -185,7 +185,7 @@ func (s *service) RegisterVerify(ctx context.Context, dto auth.CodeRequest, user
 
 	err = s.codeService.ValidateVerify(ctx, dto.Code, existingUser.ID)
 	if err != nil {
-		if errors.Is(err, code.ErrCodeNotFound) {
+		if errors.Is(err, codeservice.ErrCodeNotFound) {
 			return nil, ErrInvalidCode
 		}
 
@@ -235,7 +235,7 @@ func (s *service) VerifyResend(ctx context.Context, dto auth.EmailRequest) error
 
 	generatedCode, err := s.codeService.GenerateVerify(ctx, existingUser.ID)
 	if err != nil {
-		if errors.Is(err, code.ErrCodeAlreadySent) {
+		if errors.Is(err, codeservice.ErrCodeAlreadySent) {
 			return ErrCodeAlreadySent
 		}
 

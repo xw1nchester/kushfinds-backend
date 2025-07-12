@@ -15,10 +15,11 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
 	authservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service"
-	"github.com/vetrovegor/kushfinds-backend/internal/code"
+	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	codedb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
+	userhandler "github.com/vetrovegor/kushfinds-backend/internal/user/handler"
+	userservice "github.com/vetrovegor/kushfinds-backend/internal/user/service"
 	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	pgtx "github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
@@ -32,9 +33,9 @@ type App struct {
 	HTTPServer *http.Server
 }
 
-func NewApp(log *zap.Logger, cfg config.Config) *App {
+func New(log *zap.Logger, cfg config.Config) *App {
 	// TODO: возможно стоит вынести в main.go, чтобы не создавать доп инстанс в тестах
-	pgClient, err := pgclient.NewClient(
+	pgClient, err := pgclient.New(
 		context.TODO(),
 		pgclient.Config{
 			Username: cfg.PostgreSQL.Username,
@@ -65,25 +66,25 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 		r.Get("/ping", PingHandler)
 
 		// TODO: рефакторить (посмотреть в сторону google/wire)
-		authRepository := authdb.NewRepository(pgClient, log)
+		authRepository := authdb.New(pgClient, log)
 
-		userRepository := userdb.NewRepository(pgClient, log)
+		userRepository := userdb.New(pgClient, log)
 
-		userService := user.NewService(userRepository, log)
+		userService := userservice.New(userRepository, log)
 
-		codeRepository := codedb.NewRepository(pgClient, log)
+		codeRepository := codedb.New(pgClient, log)
 
-		codeService := code.NewService(codeRepository, log)
+		codeService := codeservice.New(codeRepository, log)
 
-		tokenManager := jwtauth.NewTokenManager(cfg.JWT)
+		tokenManager := jwtauth.NewManager(cfg.JWT)
 
 		mailManager := auth.NewMailManager(cfg.SMTP)
 
 		passwordManager := password.New(log)
 
-		txManager := pgtx.NewPgManager(pgClient)
+		txManager := pgtx.New(pgClient)
 
-		authService := authservice.NewService(
+		authService := authservice.New(
 			authRepository,
 			userService,
 			codeService,
@@ -94,15 +95,15 @@ func NewApp(log *zap.Logger, cfg config.Config) *App {
 			log,
 		)
 
-		authMiddleware := jwtauth.NewAuthMiddleware(log, tokenManager)
+		authMiddleware := jwtauth.NewMiddleware(log, tokenManager)
 
-		authHandler := authhandler.NewHandler(authService, authMiddleware, log)
+		authHandler := authhandler.New(authService, authMiddleware, log)
 
 		log.Info("register auth handlers")
 
 		authHandler.Register(r)
 
-		userHandler := user.NewHandler(userService, authMiddleware, log)
+		userHandler := userhandler.New(userService, authMiddleware, log)
 
 		log.Info("register user handlers")
 

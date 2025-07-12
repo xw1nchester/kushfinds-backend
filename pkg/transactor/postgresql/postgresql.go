@@ -14,7 +14,7 @@ type pgManager struct {
 	db *pgxpool.Pool
 }
 
-func NewPgManager(db *pgxpool.Pool) *pgManager {
+func New(db *pgxpool.Pool) *pgManager {
 	return &pgManager{db: db}
 }
 
@@ -37,7 +37,7 @@ func (m *pgManager) WithinTransaction(ctx context.Context, fn func(ctx context.C
 	return tx.Commit(ctx)
 }
 
-func GetExecutor(ctx context.Context, db DBExecutor) DBExecutor {
+func GetExecutor(ctx context.Context, db dbExecutor) dbExecutor {
 	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
 		return tx
 	}

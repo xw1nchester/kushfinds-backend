@@ -1,4 +1,4 @@
-package code
+package service
 
 import (
 	"context"
@@ -35,7 +35,7 @@ type service struct {
 	logger     *zap.Logger
 }
 
-func NewService(repository Repository, logger *zap.Logger) *service {
+func New(repository Repository, logger *zap.Logger) *service {
 	return &service{
 		repository: repository,
 		logger:     logger,

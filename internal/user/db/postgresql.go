@@ -16,7 +16,7 @@ type repository struct {
 	logger *zap.Logger
 }
 
-func NewRepository(client *pgxpool.Pool, logger *zap.Logger) *repository {
+func New(client *pgxpool.Pool, logger *zap.Logger) *repository {
 	return &repository{
 		client: client,
 		logger: logger,

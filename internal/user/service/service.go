@@ -1,4 +1,4 @@
-package user
+package service
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/user/db"
+	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +25,7 @@ type service struct {
 	logger     *zap.Logger
 }
 
-func NewService(
+func New(
 	repository Repository,
 	logger *zap.Logger,
 ) *service {
@@ -34,8 +35,8 @@ func NewService(
 	}
 }
 
-func (s *service) GetByID(ctx context.Context, id int) (*User, error) {
-	user, err := s.repository.GetByID(ctx, id)
+func (s *service) GetByID(ctx context.Context, id int) (*user.User, error) {
+	existingUser, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, db.ErrUserNotFound) {
 			return nil, apperror.ErrNotFound
@@ -46,21 +47,21 @@ func (s *service) GetByID(ctx context.Context, id int) (*User, error) {
 		return nil, err
 	}
 
-	return &User{
-		ID:            user.ID,
-		Email:         user.Email,
-		Username:      user.Username,
-		FirstName:     user.FirstName,
-		LastName:      user.LastName,
-		Avatar:        user.Avatar,
-		IsVerified:    user.IsVerified,
-		PasswordHash:  user.PasswordHash,
-		IsPasswordSet: user.PasswordHash != nil,
+	return &user.User{
+		ID:            existingUser.ID,
+		Email:         existingUser.Email,
+		Username:      existingUser.Username,
+		FirstName:     existingUser.FirstName,
+		LastName:      existingUser.LastName,
+		Avatar:        existingUser.Avatar,
+		IsVerified:    existingUser.IsVerified,
+		PasswordHash:  existingUser.PasswordHash,
+		IsPasswordSet: existingUser.PasswordHash != nil,
 	}, nil
 }
 
-func (s *service) GetByEmail(ctx context.Context, email string) (*User, error) {
-	user, err := s.repository.GetByEmail(ctx, email)
+func (s *service) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+	existingUser, err := s.repository.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, db.ErrUserNotFound) {
 			return nil, apperror.ErrNotFound
@@ -71,16 +72,16 @@ func (s *service) GetByEmail(ctx context.Context, email string) (*User, error) {
 		return nil, err
 	}
 
-	return &User{
-		ID:            user.ID,
-		Email:         user.Email,
-		Username:      user.Username,
-		FirstName:     user.FirstName,
-		LastName:      user.LastName,
-		Avatar:        user.Avatar,
-		IsVerified:    user.IsVerified,
-		PasswordHash:  user.PasswordHash,
-		IsPasswordSet: user.PasswordHash != nil,
+	return &user.User{
+		ID:            existingUser.ID,
+		Email:         existingUser.Email,
+		Username:      existingUser.Username,
+		FirstName:     existingUser.FirstName,
+		LastName:      existingUser.LastName,
+		Avatar:        existingUser.Avatar,
+		IsVerified:    existingUser.IsVerified,
+		PasswordHash:  existingUser.PasswordHash,
+		IsPasswordSet: existingUser.PasswordHash != nil,
 	}, nil
 }
 
@@ -94,23 +95,23 @@ func (s *service) Create(ctx context.Context, email string) (int, error) {
 	return userID, nil
 }
 
-func (s *service) Verify(ctx context.Context, id int) (*User, error) {
-	user, err := s.repository.Verify(ctx, id)
+func (s *service) Verify(ctx context.Context, id int) (*user.User, error) {
+	existingUser, err := s.repository.Verify(ctx, id)
 	if err != nil {
 		s.logger.Error("unexpected error when verifying user", zap.Error(err))
 		return nil, err
 	}
 
-	return &User{
-		ID:            user.ID,
-		Email:         user.Email,
-		Username:      user.Username,
-		FirstName:     user.FirstName,
-		LastName:      user.LastName,
-		Avatar:        user.Avatar,
-		IsVerified:    user.IsVerified,
-		PasswordHash:  user.PasswordHash,
-		IsPasswordSet: user.PasswordHash != nil,
+	return &user.User{
+		ID:            existingUser.ID,
+		Email:         existingUser.Email,
+		Username:      existingUser.Username,
+		FirstName:     existingUser.FirstName,
+		LastName:      existingUser.LastName,
+		Avatar:        existingUser.Avatar,
+		IsVerified:    existingUser.IsVerified,
+		PasswordHash:  existingUser.PasswordHash,
+		IsPasswordSet: existingUser.PasswordHash != nil,
 	}, nil
 }
 
@@ -127,14 +128,14 @@ func (s *service) CheckUsernameIsAvailable(ctx context.Context, username string)
 	return isAvailable, err
 }
 
-func (s *service) SetProfileInfo(ctx context.Context, user *User) (*User, error) {
+func (s *service) SetProfileInfo(ctx context.Context, userData *user.User) (*user.User, error) {
 	updatedUser, err := s.repository.SetProfileInfo(
 		ctx,
 		db.User{
-			ID:        user.ID,
-			Username:  user.Username,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
+			ID:        userData.ID,
+			Username:  userData.Username,
+			FirstName: userData.FirstName,
+			LastName:  userData.LastName,
 		},
 	)
 	if err != nil {
@@ -142,7 +143,7 @@ func (s *service) SetProfileInfo(ctx context.Context, user *User) (*User, error)
 		return nil, err
 	}
 
-	return &User{
+	return &user.User{
 		ID:            updatedUser.ID,
 		Email:         updatedUser.Email,
 		Username:      updatedUser.Username,

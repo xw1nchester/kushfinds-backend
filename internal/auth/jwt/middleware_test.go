@@ -18,7 +18,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	mockTokenManager := mockjwt.NewMockJwtManager(ctrl) // предполагается, что мок сгенерирован
 	logger := zap.NewNop()
-	middleware := NewAuthMiddleware(logger, mockTokenManager)
+	middleware := NewMiddleware(logger, mockTokenManager)
 
 	tests := []struct {
 		name               string

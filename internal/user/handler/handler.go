@@ -1,4 +1,4 @@
-package user
+package handler
 
 import (
 	"context"
@@ -9,11 +9,12 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
+	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 )
 
 type Service interface {
-	GetByID(ctx context.Context, id int) (*User, error)
+	GetByID(ctx context.Context, id int) (*user.User, error)
 }
 
 type handler struct {
@@ -22,7 +23,7 @@ type handler struct {
 	logger         *zap.Logger
 }
 
-func NewHandler(service Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
+func New(service Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
 		service:        service,
 		authMiddleware: authMiddleware,
@@ -45,12 +46,12 @@ func (h *handler) Register(router chi.Router) {
 func (h *handler) userHandler(w http.ResponseWriter, r *http.Request) error {
 	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
 
-	user, err := h.service.GetByID(r.Context(), userID)
+	existingUser, err := h.service.GetByID(r.Context(), userID)
 	if err != nil {
 		return err
 	}
 
-	render.JSON(w, r, UserResponse{User: *user})
+	render.JSON(w, r, user.UserResponse{User: *existingUser})
 
 	return nil
 }

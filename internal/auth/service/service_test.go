@@ -15,7 +15,7 @@ import (
 	mockauthrepo "github.com/vetrovegor/kushfinds-backend/internal/auth/service/mocks/repo"
 	mocktoken "github.com/vetrovegor/kushfinds-backend/internal/auth/service/mocks/token"
 	mockuserservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service/mocks/user"
-	"github.com/vetrovegor/kushfinds-backend/internal/code"
+	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	mocktransactor "github.com/vetrovegor/kushfinds-backend/pkg/transactor/mocks"
 	"go.uber.org/mock/gomock"
@@ -410,7 +410,7 @@ func TestRegisterVerify(t *testing.T) {
 				userAgent string,
 			) {
 				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
-				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(code.ErrCodeNotFound)
+				mockCodeService.EXPECT().ValidateVerify(ctx, dto.Code, UserID).Return(codeservice.ErrCodeNotFound)
 			},
 			expectedError: ErrInvalidCode,
 		},
@@ -636,7 +636,7 @@ func TestVerifyResend(t *testing.T) {
 				dto auth.EmailRequest,
 			) {
 				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(UnverifiedUser, nil)
-				mockCodeService.EXPECT().GenerateVerify(ctx, UnverifiedUser.ID).Return("", code.ErrCodeAlreadySent)
+				mockCodeService.EXPECT().GenerateVerify(ctx, UnverifiedUser.ID).Return("", codeservice.ErrCodeAlreadySent)
 			},
 			expectedError: ErrCodeAlreadySent,
 		},

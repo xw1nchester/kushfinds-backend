@@ -15,7 +15,7 @@ type JwtManager interface {
 	ParseToken(tokenStr string) (int, error)
 }
 
-func NewAuthMiddleware(logger *zap.Logger, tokenManager JwtManager) func(http.Handler) http.Handler {
+func NewMiddleware(logger *zap.Logger, tokenManager JwtManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/vetrovegor/kushfinds-backend/internal/app"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
@@ -28,7 +30,7 @@ func main() {
 	log, _ := zap.NewDevelopment()
 	defer log.Sync()
 
-	app := app.NewApp(log, *cfg)
+	app := app.New(log, *cfg)
 
 	go func() {
 		app.MustRun()
@@ -40,7 +42,10 @@ func main() {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	// app.Shutdown(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	app.Shutdown(ctx)
 
 	log.Info("server shutting down")
 }

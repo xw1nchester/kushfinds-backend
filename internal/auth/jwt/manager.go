@@ -11,7 +11,7 @@ type manager struct {
 	jwtConfig config.JWT
 }
 
-func NewTokenManager(jwtConfig config.JWT) *manager {
+func NewManager(jwtConfig config.JWT) *manager {
 	return &manager{
 		jwtConfig: jwtConfig,
 	}

@@ -41,7 +41,7 @@ type handler struct {
 }
 
 // TODO: покрыть тестами
-func NewHandler(service Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
+func New(service Service, authMiddleware func(http.Handler) http.Handler, logger *zap.Logger) handlers.Handler {
 	return &handler{
 		service:        service,
 		authMiddleware: authMiddleware,

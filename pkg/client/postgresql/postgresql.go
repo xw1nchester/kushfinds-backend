@@ -15,7 +15,7 @@ type Config struct {
 	Database string
 }
 
-func NewClient(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
+func New(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
 		"postgresql://%s:%s@%s:%s/%s",
 		cfg.Username,
