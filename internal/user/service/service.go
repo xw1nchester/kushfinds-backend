@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
+	"github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	"go.uber.org/zap"
 )
 
@@ -18,6 +18,7 @@ type Repository interface {
 	CheckUsernameIsAvailable(ctx context.Context, username string) (bool, error)
 	SetProfileInfo(ctx context.Context, user db.User) (*db.User, error)
 	SetPassword(ctx context.Context, id int, passwordHash []byte) error
+	UpdateProfile(ctx context.Context, user db.User) (*db.User, error)
 }
 
 type service struct {
@@ -35,6 +36,26 @@ func New(
 	}
 }
 
+func createUserDto(data *db.User) *user.User {
+	return &user.User{
+		ID:            data.ID,
+		Email:         data.Email,
+		Username:      data.Username,
+		FirstName:     data.FirstName,
+		LastName:      data.LastName,
+		Avatar:        data.Avatar,
+		IsVerified:    data.IsVerified,
+		PasswordHash:  data.PasswordHash,
+		IsPasswordSet: data.PasswordHash != nil,
+		IsAdmin:       data.IsAdmin,
+		Age:           data.Age,
+		PhoneNumber:   data.PhoneNumber,
+		Country:       data.Country,
+		State:         data.State,
+		Region:        data.Region,
+	}
+}
+
 func (s *service) GetByID(ctx context.Context, id int) (*user.User, error) {
 	existingUser, err := s.repository.GetByID(ctx, id)
 	if err != nil {
@@ -47,17 +68,7 @@ func (s *service) GetByID(ctx context.Context, id int) (*user.User, error) {
 		return nil, err
 	}
 
-	return &user.User{
-		ID:            existingUser.ID,
-		Email:         existingUser.Email,
-		Username:      existingUser.Username,
-		FirstName:     existingUser.FirstName,
-		LastName:      existingUser.LastName,
-		Avatar:        existingUser.Avatar,
-		IsVerified:    existingUser.IsVerified,
-		PasswordHash:  existingUser.PasswordHash,
-		IsPasswordSet: existingUser.PasswordHash != nil,
-	}, nil
+	return createUserDto(existingUser), nil
 }
 
 func (s *service) GetByEmail(ctx context.Context, email string) (*user.User, error) {
@@ -128,18 +139,18 @@ func (s *service) CheckUsernameIsAvailable(ctx context.Context, username string)
 	return isAvailable, err
 }
 
-func (s *service) SetProfileInfo(ctx context.Context, userData *user.User) (*user.User, error) {
+func (s *service) SetProfileInfo(ctx context.Context, data *user.User) (*user.User, error) {
 	updatedUser, err := s.repository.SetProfileInfo(
 		ctx,
 		db.User{
-			ID:        userData.ID,
-			Username:  userData.Username,
-			FirstName: userData.FirstName,
-			LastName:  userData.LastName,
+			ID:        data.ID,
+			Username:  data.Username,
+			FirstName: data.FirstName,
+			LastName:  data.LastName,
 		},
 	)
 	if err != nil {
-		s.logger.Error("unexpected error when updating user profile", zap.Error(err))
+		s.logger.Error("unexpected error when setting user profile", zap.Error(err))
 		return nil, err
 	}
 
@@ -163,4 +174,23 @@ func (s *service) SetPassword(ctx context.Context, id int, passwordHash []byte) 
 	}
 
 	return nil
+}
+
+func (s *service) UpdateProfile(ctx context.Context, id int, data user.User) (*user.User, error) {
+	updatedUser, err := s.repository.UpdateProfile(
+		ctx,
+		db.User{
+			ID:          data.ID,
+			FirstName:   data.FirstName,
+			LastName:    data.LastName,
+			Age:         data.Age,
+			PhoneNumber: data.PhoneNumber,
+		},
+	)
+	if err != nil {
+		s.logger.Error("unexpected error when updating user profile", zap.Error(err))
+		return nil, err
+	}
+
+	return createUserDto(updatedUser), nil
 }

@@ -55,7 +55,9 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		LoggingMiddleware(log),
 		cors.Handler(cors.Options{
 			AllowedOrigins:   cfg.AllowedOrigins,
-			AllowCredentials: true,
+			AllowCredentials: cfg.AllowCredentials,
+			AllowedMethods:   cfg.AllowedMethods,
+			AllowedHeaders:   cfg.AllowedHeaders,
 		}),
 		middleware.Recoverer,
 	)

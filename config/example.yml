@@ -12,6 +12,17 @@ http_server:
   allowed_origins:
     - http://localhost:5173
     - http://localhost:3000
+  allow_credentials: true
+  allowed_methods:
+    - GET
+    - POST
+    - PATCH
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed_headers:
+    - Authorization
+    - Content-Type
 jwt:
   secret: $3cr3t
   access_token_ttl: 5m

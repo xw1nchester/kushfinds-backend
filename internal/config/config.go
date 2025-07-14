@@ -25,10 +25,13 @@ type PostgreSQL struct {
 }
 
 type HTTPServer struct {
-	Address        string        `yaml:"address" env-required:"true"`
-	Timeout        time.Duration `yaml:"timeout" env-default:"4s"`
-	IdleTimeout    time.Duration `yaml:"idle_timeout" env-default:"60s"`
-	AllowedOrigins []string      `yaml:"allowed_origins" env-default:"*"`
+	Address          string        `yaml:"address" env-required:"true"`
+	Timeout          time.Duration `yaml:"timeout" env-default:"4s"`
+	IdleTimeout      time.Duration `yaml:"idle_timeout" env-default:"60s"`
+	AllowedOrigins   []string      `yaml:"allowed_origins" env-default:"*"`
+	AllowCredentials bool          `yaml:"allow_credentials" env-default:"*"`
+	AllowedMethods   []string      `yaml:"allowed_methods" env-default:"*"`
+	AllowedHeaders   []string      `yaml:"allowed_headers" env-default:"*"`
 }
 
 type JWT struct {

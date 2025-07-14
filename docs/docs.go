@@ -486,6 +486,9 @@ const docTemplate = `{
         "user.User": {
             "type": "object",
             "properties": {
+                "age": {
+                    "type": "integer"
+                },
                 "avatar": {
                     "type": "string"
                 },
@@ -498,6 +501,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "isAdmin": {
+                    "type": "boolean"
+                },
                 "isPasswordSet": {
                     "type": "boolean"
                 },
@@ -505,6 +511,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "lastName": {
+                    "type": "string"
+                },
+                "phoneNumber": {
                     "type": "string"
                 },
                 "username": {

@@ -7,6 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
 	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
@@ -29,14 +32,41 @@ func (r *repository) logSQLQuery(sql string) {
 
 func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
 	query := `
-        SELECT id, email, username, first_name, last_name, avatar, password_hash, is_verified
-        FROM users
-		WHERE id=$1
+        SELECT 
+			u.id, 
+			u.email, 
+			u.username, 
+			u.first_name, 
+			u.last_name, 
+			u.avatar, 
+			u.password_hash, 
+			u.is_verified, 
+			u.is_admin, 
+			u.age, 
+			u.phone_number,
+			c.id,
+			c.name,
+			s.id,
+			s.name,
+			r.id,
+			r.name
+        FROM users u
+		LEFT JOIN countries c ON u.country_id = c.id
+		LEFT JOIN states s ON u.state_id = s.id
+		LEFT JOIN regions r ON u.region_id = r.id
+		WHERE u.id=$1
     `
 
 	r.logSQLQuery(query)
 
 	var existingUser User
+	var countryID *int
+	var countryName *string
+	var stateID *int
+	var stateName *string
+	var regionID *int
+	var regionName *string
+
 	if err := r.client.QueryRow(ctx, query, id).Scan(
 		&existingUser.ID,
 		&existingUser.Email,
@@ -45,12 +75,43 @@ func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
 		&existingUser.LastName,
 		&existingUser.Avatar,
 		&existingUser.PasswordHash,
-		&existingUser.IsVerified); err != nil {
+		&existingUser.IsVerified,
+		&existingUser.IsAdmin,
+		&existingUser.Age,
+		&existingUser.PhoneNumber,
+		&countryID,
+		&countryName,
+		&stateID,
+		&stateName,
+		&regionID,
+		&regionName,
+	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 
 		return nil, err
+	}
+
+	if countryID != nil {
+		existingUser.Country = &country.Country{
+			ID:   *countryID,
+			Name: *countryName,
+		}
+	}
+
+	if stateID != nil {
+		existingUser.State = &state.State{
+			ID:   *stateID,
+			Name: *stateName,
+		}
+	}
+
+	if regionID != nil {
+		existingUser.Region = &region.Region{
+			ID:   *regionID,
+			Name: *regionName,
+		}
 	}
 
 	return &existingUser, nil
@@ -101,7 +162,7 @@ func (r *repository) Create(ctx context.Context, email string) (int, error) {
 		return 0, err
 	}
 
-	return  id, nil
+	return id, nil
 }
 
 func (r *repository) Verify(ctx context.Context, id int) (*User, error) {
@@ -151,6 +212,7 @@ func (r *repository) CheckUsernameIsAvailable(ctx context.Context, username stri
 	return false, nil
 }
 
+// TODO: вернуть GetByID
 func (r *repository) SetProfileInfo(ctx context.Context, data User) (*User, error) {
 	query := `
 		UPDATE users
@@ -181,11 +243,35 @@ func (r *repository) SetPassword(ctx context.Context, id int, passwordHash []byt
 		UPDATE users
 		SET password_hash=$1
 		WHERE id=$2
-		RETURNING id
 	`
 
 	r.logSQLQuery(query)
 
-	var updatedID int
-	return r.client.QueryRow(ctx, query, passwordHash, id).Scan(&updatedID)
+	_, err := r.client.Exec(ctx, query, passwordHash, id)
+
+	return err
+}
+
+func (r *repository) UpdateProfile(ctx context.Context, data User) (*User, error) {
+	query := `
+		UPDATE users
+		SET first_name=$1, last_name=$2, age=$3, phone_number=$4
+		WHERE id=$5
+	`
+
+	r.logSQLQuery(query)
+
+	if _, err := r.client.Exec(
+		ctx,
+		query,
+		data.FirstName,
+		data.LastName,
+		data.Age,
+		data.PhoneNumber,
+		data.ID,
+	); err != nil {
+		return nil, err
+	}
+
+	return r.GetByID(ctx, data.ID)
 }

@@ -74,6 +74,8 @@ definitions:
     type: object
   user.User:
     properties:
+      age:
+        type: integer
       avatar:
         type: string
       email:
@@ -82,11 +84,15 @@ definitions:
         type: string
       id:
         type: integer
+      isAdmin:
+        type: boolean
       isPasswordSet:
         type: boolean
       isVerified:
         type: boolean
       lastName:
+        type: string
+      phoneNumber:
         type: string
       username:
         type: string

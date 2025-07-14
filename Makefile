@@ -1,9 +1,15 @@
 migrate.up:
 	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" up
 
+migrate.up.%:
+	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" up $*
+
 migrate.down:
 	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" down
 
+migrate.down.%:
+	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" down $*
+	
 dev:
 	export CONFIG_PATH=config/local.yml && air
 

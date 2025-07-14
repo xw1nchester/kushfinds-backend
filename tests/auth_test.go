@@ -189,6 +189,7 @@ func (s *APITestSuite) TestSaveProfile() {
 	var buf bytes.Buffer
 	require.NoError(json.NewEncoder(&buf).Encode(busy))
 
+	// TODO: попробовать http.DefaultClient
 	client := &http.Client{}
 
 	// без токена
