@@ -15,12 +15,19 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
 	authservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service"
-	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	codedb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
+	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
+	countrydb "github.com/vetrovegor/kushfinds-backend/internal/location/country/db"
+	countryservice "github.com/vetrovegor/kushfinds-backend/internal/location/country/service"
+	countryhandler "github.com/vetrovegor/kushfinds-backend/internal/location/country/handler"
+	statedb "github.com/vetrovegor/kushfinds-backend/internal/location/state/db"
+	stateservice "github.com/vetrovegor/kushfinds-backend/internal/location/state/service"
+	regiondb "github.com/vetrovegor/kushfinds-backend/internal/location/region/db"
+	regionservice "github.com/vetrovegor/kushfinds-backend/internal/location/region/service"
+	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	userhandler "github.com/vetrovegor/kushfinds-backend/internal/user/handler"
 	userservice "github.com/vetrovegor/kushfinds-backend/internal/user/service"
-	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	pgtx "github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
@@ -72,7 +79,25 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		userRepository := userdb.New(pgClient, log)
 
-		userService := userservice.New(userRepository, log)
+		countryRepository := countrydb.New(pgClient, log)
+
+		countryService := countryservice.New(countryRepository, log)
+
+		stateRepository := statedb.New(pgClient, log)
+
+		stateService := stateservice.New(stateRepository, log)
+
+		regionRepository := regiondb.New(pgClient, log)
+
+		regionService := regionservice.New(regionRepository, log)
+
+		userService := userservice.New(
+			userRepository,
+			countryService,
+			stateService,
+			regionService,
+			log,
+		)
 
 		codeRepository := codedb.New(pgClient, log)
 
@@ -110,6 +135,12 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		log.Info("register user handlers")
 
 		userHandler.Register(r)
+
+		countryHandler := countryhandler.New(countryService, log)
+
+		log.Info("register country handlers")
+
+		countryHandler.Register(r)
 	})
 
 	srv := &http.Server{

@@ -27,14 +27,3 @@ type User struct {
 type UserResponse struct {
 	User User `json:"user"`
 }
-
-// TODO: перенести в package handler?
-type ProfileRequest struct {
-	FirstName   string `json:"firstName"`
-	LastName    string `json:"lastName"`
-	Age         string `json:"age"`
-	PhoneNumber string `json:"phoneNumber"`
-	Country     string `json:"countryId"`
-	State       string `json:"stateId"`
-	Region      string `json:"regionId"`
-}

@@ -5,6 +5,9 @@ import (
 	"errors"
 
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	"go.uber.org/zap"
@@ -21,18 +24,39 @@ type Repository interface {
 	UpdateProfile(ctx context.Context, user db.User) (*db.User, error)
 }
 
+type CountryService interface {
+	GetByID(ctx context.Context, id int) (*country.Country, error)
+}
+
+type StateService interface {
+	GetByID(ctx context.Context, id int) (*state.State, error)
+}
+
+type RegionService interface {
+	GetByID(ctx context.Context, id int) (*region.Region, error)
+}
+
 type service struct {
-	repository Repository
-	logger     *zap.Logger
+	repository     Repository
+	countryService CountryService
+	stateService   StateService
+	regionService  RegionService
+	logger         *zap.Logger
 }
 
 func New(
 	repository Repository,
+	countryService CountryService,
+	stateService StateService,
+	regionService RegionService,
 	logger *zap.Logger,
 ) *service {
 	return &service{
-		repository: repository,
-		logger:     logger,
+		repository:     repository,
+		countryService: countryService,
+		stateService:   stateService,
+		regionService:  regionService,
+		logger:         logger,
 	}
 }
 
@@ -177,6 +201,32 @@ func (s *service) SetPassword(ctx context.Context, id int, passwordHash []byte) 
 }
 
 func (s *service) UpdateProfile(ctx context.Context, id int, data user.User) (*user.User, error) {
+	if data.Country == nil && (data.State != nil || data.Region != nil) {
+		return nil, apperror.NewAppError("country should not be empty")
+	}
+
+	if data.State == nil && data.Region != nil {
+		return nil, apperror.NewAppError("state should not be empty")
+	}
+
+	if data.Country != nil {
+		if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
+			return nil, err
+		}
+	}
+
+	if data.State != nil {
+		if _, err := s.stateService.GetByID(ctx, data.State.ID); err != nil {
+			return nil, err
+		}
+	}
+
+	if data.Region != nil {
+		if _, err := s.regionService.GetByID(ctx, data.Region.ID); err != nil {
+			return nil, err
+		}
+	}
+
 	updatedUser, err := s.repository.UpdateProfile(
 		ctx,
 		db.User{
@@ -185,6 +235,9 @@ func (s *service) UpdateProfile(ctx context.Context, id int, data user.User) (*u
 			LastName:    data.LastName,
 			Age:         data.Age,
 			PhoneNumber: data.PhoneNumber,
+			Country:     data.Country,
+			State:       data.State,
+			Region:      data.Region,
 		},
 	)
 	if err != nil {

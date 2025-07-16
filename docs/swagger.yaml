@@ -72,12 +72,63 @@ definitions:
     - lastName
     - username
     type: object
+  country.Country:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  handler.ContriesResponse:
+    properties:
+      countries:
+        items:
+          $ref: '#/definitions/country.Country'
+        type: array
+    type: object
+  handler.ProfileRequest:
+    properties:
+      age:
+        type: integer
+      countryId:
+        type: integer
+      firstName:
+        maxLength: 30
+        minLength: 3
+        type: string
+      lastName:
+        maxLength: 30
+        minLength: 3
+        type: string
+      phoneNumber:
+        type: string
+      regionId:
+        type: integer
+      stateId:
+        type: integer
+    type: object
+  region.Region:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  state.State:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   user.User:
     properties:
       age:
         type: integer
       avatar:
         type: string
+      country:
+        $ref: '#/definitions/country.Country'
       email:
         type: string
       firstName:
@@ -94,6 +145,10 @@ definitions:
         type: string
       phoneNumber:
         type: string
+      region:
+        $ref: '#/definitions/region.Region'
+      state:
+        $ref: '#/definitions/state.State'
       username:
         type: string
     type: object
@@ -299,6 +354,23 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
+  /countries:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.ContriesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - location
   /ping:
     get:
       responses:
@@ -332,7 +404,31 @@ paths:
           schema:
             $ref: '#/definitions/apperror.AppError'
       tags:
-      - user
+      - users
+  /users/profile:
+    patch:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.ProfileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - users
 securityDefinitions:
   ApiKeyAuth:
     in: header

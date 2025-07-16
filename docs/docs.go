@@ -321,6 +321,33 @@ const docTemplate = `{
                 }
             }
         },
+        "/countries": {
+            "get": {
+                "tags": [
+                    "location"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ContriesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "tags": [
@@ -351,7 +378,45 @@ const docTemplate = `{
         "/users/me": {
             "get": {
                 "tags": [
-                    "user"
+                    "users"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/profile": {
+            "patch": {
+                "tags": [
+                    "users"
+                ],
+                "parameters": [
+                    {
+                        "description": "request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.ProfileRequest"
+                        }
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -483,6 +548,80 @@ const docTemplate = `{
                 }
             }
         },
+        "country.Country": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.ContriesResponse": {
+            "type": "object",
+            "properties": {
+                "countries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/country.Country"
+                    }
+                }
+            }
+        },
+        "handler.ProfileRequest": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "countryId": {
+                    "type": "integer"
+                },
+                "firstName": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "minLength": 3
+                },
+                "lastName": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "minLength": 3
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "regionId": {
+                    "type": "integer"
+                },
+                "stateId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "region.Region": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "state.State": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "user.User": {
             "type": "object",
             "properties": {
@@ -491,6 +630,9 @@ const docTemplate = `{
                 },
                 "avatar": {
                     "type": "string"
+                },
+                "country": {
+                    "$ref": "#/definitions/country.Country"
                 },
                 "email": {
                     "type": "string"
@@ -515,6 +657,12 @@ const docTemplate = `{
                 },
                 "phoneNumber": {
                     "type": "string"
+                },
+                "region": {
+                    "$ref": "#/definitions/region.Region"
+                },
+                "state": {
+                    "$ref": "#/definitions/state.State"
                 },
                 "username": {
                     "type": "string"

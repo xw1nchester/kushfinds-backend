@@ -20,5 +20,5 @@ type User struct {
 	PhoneNumber  *string
 	Country      *country.Country
 	State        *state.State
-	Region      *region.Region
+	Region       *region.Region
 }

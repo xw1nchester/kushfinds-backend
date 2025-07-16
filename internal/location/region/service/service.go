@@ -1,0 +1,49 @@
+package service
+
+import (
+	"context"
+	"errors"
+
+	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/region/db"
+	"go.uber.org/zap"
+)
+
+type Repository interface {
+	GetAll(ctx context.Context) ([]*db.Region, error)
+	GetByID(ctx context.Context, id int) (*db.Region, error)
+}
+
+type service struct {
+	repository Repository
+	logger     *zap.Logger
+}
+
+func New(
+	repository Repository,
+	logger *zap.Logger,
+) *service {
+	return &service{
+		repository: repository,
+		logger:     logger,
+	}
+}
+
+func (s *service) GetByID(ctx context.Context, id int) (*region.Region, error) {
+	existingRegion, err := s.repository.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, db.ErrRegionNotFound) {
+			return nil, apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when fetching region by id", zap.Error(err))
+
+		return nil, err
+	}
+
+	return &region.Region{
+		ID:   existingRegion.ID,
+		Name: existingRegion.Name,
+	}, nil
+}
