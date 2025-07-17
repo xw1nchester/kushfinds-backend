@@ -382,7 +382,7 @@ func TestRegisterVerify(t *testing.T) {
 			expectedError: ErrUnexpected,
 		},
 		{
-			name: "user already verified",
+			name: "password already set",
 			mockBehavior: func(
 				ctx context.Context,
 				mockUserService *mockuserservice.MockUserService,
@@ -393,7 +393,7 @@ func TestRegisterVerify(t *testing.T) {
 				dto auth.CodeRequest,
 				userAgent string,
 			) {
-				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(VerifiedUser, nil)
+				mockUserService.EXPECT().GetByEmail(ctx, dto.Email).Return(VerifiedUserWithProfileInfoAndPassword, nil)
 			},
 			expectedError: ErrUserAlreadyVerified,
 		},

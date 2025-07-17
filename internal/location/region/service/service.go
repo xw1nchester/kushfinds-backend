@@ -11,8 +11,9 @@ import (
 )
 
 type Repository interface {
-	GetAll(ctx context.Context) ([]*db.Region, error)
-	GetByID(ctx context.Context, id int) (*db.Region, error)
+	GetAll(ctx context.Context) ([]region.Region, error)
+	GetByID(ctx context.Context, id int) (*region.Region, error)
+	GetAllByStateID(ctx context.Context, countryID int) ([]region.Region, error)
 }
 
 type service struct {
@@ -46,4 +47,15 @@ func (s *service) GetByID(ctx context.Context, id int) (*region.Region, error) {
 		ID:   existingRegion.ID,
 		Name: existingRegion.Name,
 	}, nil
+}
+
+func (s *service) GetAllByStateID(ctx context.Context, id int) ([]region.Region, error) {
+	regions, err := s.repository.GetAllByStateID(ctx, id)
+	if err != nil {
+		s.logger.Error("unexpected error when fetching regions by state id", zap.Error(err))
+
+		return nil, err
+	}
+
+	return regions, nil
 }

@@ -8,11 +8,11 @@ import (
 type handler func(w http.ResponseWriter, r *http.Request) error
 
 func Middleware(h handler) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		err := h(w, r)
-		
+
 		var appErr *AppError
 		if err != nil {
 			if errors.As(err, &appErr) {

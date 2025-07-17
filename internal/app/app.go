@@ -9,6 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/swaggo/http-swagger/v2"
+	_ "github.com/vetrovegor/kushfinds-backend/docs"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authdb "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
 	authhandler "github.com/vetrovegor/kushfinds-backend/internal/auth/handler"
@@ -19,21 +21,19 @@ import (
 	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	countrydb "github.com/vetrovegor/kushfinds-backend/internal/location/country/db"
-	countryservice "github.com/vetrovegor/kushfinds-backend/internal/location/country/service"
 	countryhandler "github.com/vetrovegor/kushfinds-backend/internal/location/country/handler"
-	statedb "github.com/vetrovegor/kushfinds-backend/internal/location/state/db"
-	stateservice "github.com/vetrovegor/kushfinds-backend/internal/location/state/service"
+	countryservice "github.com/vetrovegor/kushfinds-backend/internal/location/country/service"
 	regiondb "github.com/vetrovegor/kushfinds-backend/internal/location/region/db"
 	regionservice "github.com/vetrovegor/kushfinds-backend/internal/location/region/service"
+	statedb "github.com/vetrovegor/kushfinds-backend/internal/location/state/db"
+	statehandler "github.com/vetrovegor/kushfinds-backend/internal/location/state/handler"
+	stateservice "github.com/vetrovegor/kushfinds-backend/internal/location/state/service"
 	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	userhandler "github.com/vetrovegor/kushfinds-backend/internal/user/handler"
 	userservice "github.com/vetrovegor/kushfinds-backend/internal/user/service"
 	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	pgtx "github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
-
-	"github.com/swaggo/http-swagger/v2"
-	_ "github.com/vetrovegor/kushfinds-backend/docs"
 )
 
 type App struct {
@@ -79,17 +79,17 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		userRepository := userdb.New(pgClient, log)
 
-		countryRepository := countrydb.New(pgClient, log)
-
-		countryService := countryservice.New(countryRepository, log)
-
-		stateRepository := statedb.New(pgClient, log)
-
-		stateService := stateservice.New(stateRepository, log)
-
 		regionRepository := regiondb.New(pgClient, log)
 
 		regionService := regionservice.New(regionRepository, log)
+
+		stateRepository := statedb.New(pgClient, log)
+
+		stateService := stateservice.New(stateRepository, regionService, log)
+
+		countryRepository := countrydb.New(pgClient, log)
+
+		countryService := countryservice.New(countryRepository, stateService, log)
 
 		userService := userservice.New(
 			userRepository,
@@ -141,6 +141,12 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		log.Info("register country handlers")
 
 		countryHandler.Register(r)
+
+		stateHandler := statehandler.New(stateService, log)
+
+		log.Info("register state handlers")
+
+		stateHandler.Register(r)
 	})
 
 	srv := &http.Server{

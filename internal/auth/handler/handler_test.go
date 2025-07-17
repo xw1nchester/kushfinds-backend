@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
-	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	mockauthservice "github.com/vetrovegor/kushfinds-backend/internal/auth/handler/mocks"
+	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/user"
 	"go.uber.org/mock/gomock"
 )

@@ -3,11 +3,11 @@ package db
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vetrovegor/kushfinds-backend/internal/logging"
 	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
@@ -24,10 +24,6 @@ func New(client *pgxpool.Pool, logger *zap.Logger) *repository {
 	}
 }
 
-func (r *repository) logSQLQuery(sql string) {
-	r.logger.Debug("SQL query", zap.String("query", strings.Join(strings.Fields(sql), " ")))
-}
-
 // GenerateChangePassword implements code.Repository.
 func (r *repository) Create(ctx context.Context, code string, codeType string, userID int, retryDate time.Time, expiryDate time.Time) error {
 	query := `
@@ -40,13 +36,13 @@ func (r *repository) Create(ctx context.Context, code string, codeType string, u
 			expiry_date = EXCLUDED.expiry_date;
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
 	_, err := executor.Exec(ctx, query, code, codeType, userID, retryDate, expiryDate)
 
-	return  err
+	return err
 }
 
 func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType string, userID int) (bool, error) {
@@ -55,7 +51,7 @@ func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType strin
 		WHERE type=$1 AND user_id=$2 AND retry_date>NOW()
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	var id int
 	err := r.client.QueryRow(ctx, query, codeType, userID).Scan(&id)
@@ -75,7 +71,7 @@ func (r *repository) CheckNotExpiryCodeExists(ctx context.Context, code string, 
 		WHERE code=$1 AND type=$2 AND user_id=$3 AND expiry_date>NOW()
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	var id int
 	err := r.client.QueryRow(ctx, query, code, codeType, userID).Scan(&id)

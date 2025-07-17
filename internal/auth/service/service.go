@@ -179,7 +179,7 @@ func (s *service) RegisterVerify(ctx context.Context, dto auth.CodeRequest, user
 		return nil, err
 	}
 
-	if existingUser.IsVerified {
+	if existingUser.IsPasswordSet {
 		return nil, ErrUserAlreadyVerified
 	}
 
@@ -192,16 +192,19 @@ func (s *service) RegisterVerify(ctx context.Context, dto auth.CodeRequest, user
 		return nil, err
 	}
 
-	var verifiedUser *user.User
 	var tokens *auth.Tokens
 
 	err = s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
-		verifiedUser, err = s.userService.Verify(ctx, existingUser.ID)
-		if err != nil {
-			return err
+		if !existingUser.IsVerified {
+			_, err = s.userService.Verify(ctx, existingUser.ID)
+			if err != nil {
+				return err
+			}
+
+			existingUser.IsVerified = true
 		}
 
-		tokens, err = s.generateTokens(ctx, userAgent, verifiedUser.ID)
+		tokens, err = s.generateTokens(ctx, userAgent, existingUser.ID)
 		if err != nil {
 			return err
 		}
@@ -214,7 +217,7 @@ func (s *service) RegisterVerify(ctx context.Context, dto auth.CodeRequest, user
 	}
 
 	return &auth.AuthFullResponse{
-		UserResponse: user.UserResponse{User: *verifiedUser},
+		UserResponse: user.UserResponse{User: *existingUser},
 		Tokens:       *tokens,
 	}, nil
 }
@@ -229,7 +232,7 @@ func (s *service) VerifyResend(ctx context.Context, dto auth.EmailRequest) error
 		return err
 	}
 
-	if existingUser.IsVerified {
+	if existingUser.IsPasswordSet {
 		return ErrUserAlreadyVerified
 	}
 

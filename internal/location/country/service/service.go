@@ -7,26 +7,34 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
 	"github.com/vetrovegor/kushfinds-backend/internal/location/country/db"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
 	"go.uber.org/zap"
 )
 
 type Repository interface {
-	GetAll(ctx context.Context) ([]db.Country, error)
-	GetByID(ctx context.Context, id int) (*db.Country, error)
+	GetAll(ctx context.Context) ([]country.Country, error)
+	GetByID(ctx context.Context, id int) (*country.Country, error)
+}
+
+type StateService interface {
+	GetAllByCountryID(ctx context.Context, id int) ([]state.State, error)
 }
 
 type service struct {
-	repository Repository
-	logger     *zap.Logger
+	repository   Repository
+	stateService StateService
+	logger       *zap.Logger
 }
 
 func New(
 	repository Repository,
+	stateService StateService,
 	logger *zap.Logger,
 ) *service {
 	return &service{
-		repository: repository,
-		logger:     logger,
+		repository:   repository,
+		stateService: stateService,
+		logger:       logger,
 	}
 }
 
@@ -65,4 +73,8 @@ func (s *service) GetByID(ctx context.Context, id int) (*country.Country, error)
 		ID:   existingCountry.ID,
 		Name: existingCountry.Name,
 	}, nil
+}
+
+func (s *service) GetCountryStates(ctx context.Context, id int) ([]state.State, error) {
+	return s.stateService.GetAllByCountryID(ctx, id)
 }

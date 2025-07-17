@@ -26,11 +26,11 @@ type TokenManager interface {
 
 type APITestSuite struct {
 	suite.Suite
-	cfg *config.Config
-	dbClient *pgxpool.Pool
-	logger   *zap.SugaredLogger
-	baseUrl  string
-	app      *app.App
+	cfg          *config.Config
+	dbClient     *pgxpool.Pool
+	logger       *zap.SugaredLogger
+	baseUrl      string
+	app          *app.App
 	tokenManager TokenManager
 }
 
@@ -142,7 +142,7 @@ func (s *APITestSuite) populateDb() error {
 	`
 
 	_, err := s.dbClient.Exec(context.Background(), query)
-	
+
 	return err
 }
 
@@ -152,6 +152,6 @@ func (s *APITestSuite) cleanupDb() error {
 	`
 
 	_, err := s.dbClient.Exec(context.Background(), query)
-	
+
 	return err
 }

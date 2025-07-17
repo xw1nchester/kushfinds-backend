@@ -107,6 +107,20 @@ definitions:
       stateId:
         type: integer
     type: object
+  handler.RegionsResponse:
+    properties:
+      regions:
+        items:
+          $ref: '#/definitions/region.Region'
+        type: array
+    type: object
+  handler.StatesResponse:
+    properties:
+      states:
+        items:
+          $ref: '#/definitions/state.State'
+        type: array
+    type: object
   region.Region:
     properties:
       id:
@@ -371,6 +385,29 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - location
+  /countries/{country_id}/states:
+    get:
+      parameters:
+      - description: Country ID
+        in: path
+        name: country_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.StatesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - location
   /ping:
     get:
       responses:
@@ -388,6 +425,29 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - other
+  /states/{state_id}/regions:
+    get:
+      parameters:
+      - description: State ID
+        in: path
+        name: state_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RegionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - location
   /users/me:
     get:
       responses:

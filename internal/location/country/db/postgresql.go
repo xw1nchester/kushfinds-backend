@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
+	"github.com/vetrovegor/kushfinds-backend/internal/logging"
 	"go.uber.org/zap"
 )
 
@@ -23,14 +24,10 @@ func New(client *pgxpool.Pool, logger *zap.Logger) *repository {
 	}
 }
 
-func (r *repository) logSQLQuery(sql string) {
-	r.logger.Debug("SQL query", zap.String("query", strings.Join(strings.Fields(sql), " ")))
-}
-
-func (r *repository) GetAll(ctx context.Context) ([]Country, error){
+func (r *repository) GetAll(ctx context.Context) ([]country.Country, error) {
 	query := `SELECT id, name FROM countries`
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	rows, err := r.client.Query(ctx, query)
 	if err != nil {
@@ -38,33 +35,37 @@ func (r *repository) GetAll(ctx context.Context) ([]Country, error){
 	}
 	defer rows.Close()
 
-	var countries []Country
+	countries := make([]country.Country, 0)
 	for rows.Next() {
-		var country Country
-		
+		var country country.Country
+
 		err := rows.Scan(
 			&country.ID,
 			&country.Name,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("row scanning error: %v", err)
+			return nil, fmt.Errorf("failed to scan row: %v", err)
 		}
 
 		countries = append(countries, country)
 	}
 
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("row error: %v", err)
+	}
+
 	return countries, nil
 }
 
-func (r *repository) GetByID(ctx context.Context, id int) (*Country, error) {
+func (r *repository) GetByID(ctx context.Context, id int) (*country.Country, error) {
 	query := `
         SELECT id, name FROM countries
 		WHERE id=$1
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
-	var country Country
+	var country country.Country
 	err := r.client.QueryRow(ctx, query, id).Scan(&country.ID, &country.Name)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

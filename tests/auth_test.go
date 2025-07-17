@@ -100,9 +100,9 @@ func (s *APITestSuite) TestVerifyResend() {
 
 	// установка retry_date < текущей даты
 	_, err = s.dbClient.Exec(
-		ctx, 
-		"UPDATE codes SET retry_date=$1 WHERE id=$2", 
-		time.Now().Add(-time.Second), 
+		ctx,
+		"UPDATE codes SET retry_date=$1 WHERE id=$2",
+		time.Now().Add(-time.Second),
 		createdCodeID,
 	)
 	require.NoError(err)
@@ -133,8 +133,8 @@ func (s *APITestSuite) TestVerify() {
 
 	// отправка некорректного кода подтверждения
 	response, err := http.Post(
-		registerVerifyURL, 
-		JSONContentType, 
+		registerVerifyURL,
+		JSONContentType,
 		bytes.NewBufferString(fmt.Sprintf(`{"email":"%s","code":"%s"}`, email, "invalid")),
 	)
 	require.NoError(err)
@@ -146,19 +146,19 @@ func (s *APITestSuite) TestVerify() {
 
 	// вставка кода подтверждения
 	_, err = s.dbClient.Exec(
-		ctx, 
+		ctx,
 		"INSERT INTO codes (code, type, user_id, retry_date, expiry_date) VALUES ($1, 'verification', (SELECT id FROM users WHERE email = $2), $3, $4)",
 		validCode,
 		email,
 		time.Now().Add(time.Minute),
-		time.Now().Add(5 * time.Minute),
+		time.Now().Add(5*time.Minute),
 	)
 	require.NoError(err)
 
 	// отправка корректного кода подтверждения
 	response, err = http.Post(
-		registerVerifyURL, 
-		JSONContentType, 
+		registerVerifyURL,
+		JSONContentType,
 		bytes.NewBufferString(fmt.Sprintf(`{"email":"%s","code":"%s"}`, email, validCode)),
 	)
 	require.NoError(err)
@@ -181,9 +181,9 @@ func (s *APITestSuite) TestSaveProfile() {
 	saveProfileURL := fmt.Sprintf("%s/auth/register/profile", s.baseUrl)
 
 	busy := auth.ProfileRequest{
-		Username: "username",
+		Username:  "username",
 		FirstName: "John",
-		LastName: "Doe",
+		LastName:  "Doe",
 	}
 
 	var buf bytes.Buffer
@@ -214,7 +214,7 @@ func (s *APITestSuite) TestSaveProfile() {
 
 	accessToken, err := s.tokenManager.GenerateToken(userID)
 	require.NoError(err)
-	
+
 	require.NoError(json.NewEncoder(&buf).Encode(busy))
 
 	req, err = http.NewRequest(http.MethodPatch, saveProfileURL, &buf)
@@ -233,9 +233,9 @@ func (s *APITestSuite) TestSaveProfile() {
 
 	// с токеном + валидным username
 	valid := auth.ProfileRequest{
-		Username: "username1",
+		Username:  "username1",
 		FirstName: "John",
-		LastName: "Doe",
+		LastName:  "Doe",
 	}
 
 	require.NoError(json.NewEncoder(&buf).Encode(valid))

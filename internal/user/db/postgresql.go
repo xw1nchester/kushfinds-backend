@@ -3,13 +3,13 @@ package db
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
 	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
 	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
+	"github.com/vetrovegor/kushfinds-backend/internal/logging"
 	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
@@ -24,10 +24,6 @@ func New(client *pgxpool.Pool, logger *zap.Logger) *repository {
 		client: client,
 		logger: logger,
 	}
-}
-
-func (r *repository) logSQLQuery(sql string) {
-	r.logger.Debug("SQL query", zap.String("query", strings.Join(strings.Fields(sql), " ")))
 }
 
 func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
@@ -57,7 +53,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
 		WHERE u.id=$1
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	var existingUser User
 	var countryID *int
@@ -144,7 +140,7 @@ func (r *repository) GetByEmail(ctx context.Context, email string) (*User, error
 		WHERE u.email=$1
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	var existingUser User
 	var countryID *int
@@ -211,7 +207,7 @@ func (r *repository) Create(ctx context.Context, email string) (int, error) {
         RETURNING id
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
@@ -230,7 +226,7 @@ func (r *repository) Verify(ctx context.Context, id int) (*User, error) {
 		WHERE id=$1
 	`
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
@@ -248,7 +244,7 @@ func (r *repository) CheckUsernameIsAvailable(ctx context.Context, username stri
 		WHERE username=$1
     `
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	var id int
 	err := r.client.QueryRow(ctx, query, username).Scan(&id)
@@ -269,14 +265,14 @@ func (r *repository) SetProfileInfo(ctx context.Context, data User) (*User, erro
 		WHERE id=$4
 	`
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	_, err := r.client.Exec(
-		ctx, 
-		query, 
-		data.Username, 
-		data.FirstName, 
-		data.LastName, 
+		ctx,
+		query,
+		data.Username,
+		data.FirstName,
+		data.LastName,
 		data.ID,
 	)
 	if err != nil {
@@ -293,7 +289,7 @@ func (r *repository) SetPassword(ctx context.Context, id int, passwordHash []byt
 		WHERE id=$2
 	`
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	_, err := r.client.Exec(ctx, query, passwordHash, id)
 
@@ -314,7 +310,7 @@ func (r *repository) UpdateProfile(ctx context.Context, data User) (*User, error
 		WHERE id=$1
 	`
 
-	r.logSQLQuery(query)
+	logging.LogSQLQuery(*r.logger, query)
 
 	var countryID *int
 	if data.Country != nil {

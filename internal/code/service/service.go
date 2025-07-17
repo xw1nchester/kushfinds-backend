@@ -90,11 +90,11 @@ func (s *service) GenerateChangePassword(ctx context.Context, userID int) (strin
 
 func (s *service) validate(ctx context.Context, code string, codeType string, userID int) error {
 	exists, err := s.repository.CheckNotExpiryCodeExists(ctx, code, codeType, userID)
-	if err != nil && !errors.Is(err, db.ErrCodeNotFound) {		
+	if err != nil && !errors.Is(err, db.ErrCodeNotFound) {
 		s.logger.Info("error when check not expiry code exists", zap.Error(err))
 		return err
 	}
-	
+
 	if !exists {
 		return ErrCodeNotFound
 	}
