@@ -53,7 +53,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
 		WHERE u.id=$1
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var existingUser User
 	var countryID *int
@@ -140,7 +140,7 @@ func (r *repository) GetByEmail(ctx context.Context, email string) (*User, error
 		WHERE u.email=$1
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var existingUser User
 	var countryID *int
@@ -207,7 +207,7 @@ func (r *repository) Create(ctx context.Context, email string) (int, error) {
         RETURNING id
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
@@ -226,7 +226,7 @@ func (r *repository) Verify(ctx context.Context, id int) (*User, error) {
 		WHERE id=$1
 	`
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
@@ -244,7 +244,7 @@ func (r *repository) CheckUsernameIsAvailable(ctx context.Context, username stri
 		WHERE username=$1
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var id int
 	err := r.client.QueryRow(ctx, query, username).Scan(&id)
@@ -265,7 +265,7 @@ func (r *repository) SetProfileInfo(ctx context.Context, data User) (*User, erro
 		WHERE id=$4
 	`
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	_, err := r.client.Exec(
 		ctx,
@@ -289,7 +289,7 @@ func (r *repository) SetPassword(ctx context.Context, id int, passwordHash []byt
 		WHERE id=$2
 	`
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	_, err := r.client.Exec(ctx, query, passwordHash, id)
 
@@ -310,7 +310,7 @@ func (r *repository) UpdateProfile(ctx context.Context, data User) (*User, error
 		WHERE id=$1
 	`
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var countryID *int
 	if data.Country != nil {
@@ -343,4 +343,88 @@ func (r *repository) UpdateProfile(ctx context.Context, data User) (*User, error
 	}
 
 	return r.GetByID(ctx, data.ID)
+}
+
+func (r *repository) GetUserBusinessProfile(ctx context.Context, userID int) (*BusinessProfile, error) {
+	query := `
+        SELECT 
+			bi.id,
+			bi.name,
+			bp.business_name,
+			c.id,
+			c.name,
+			s.id,
+			s.name,
+			r.id,
+			r.name,
+			bp.email,
+			bp.phone_number
+        FROM business_profiles bp
+		LEFT JOIN business_industries bi ON bp.business_industry_id = bi.id
+		LEFT JOIN countries c ON bp.country_id = c.id
+		LEFT JOIN states s ON bp.state_id = s.id
+		LEFT JOIN regions r ON bp.region_id = r.id
+		WHERE bp.user_id=$1
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var businessProfile BusinessProfile
+
+	if err := r.client.QueryRow(ctx, query, userID).Scan(
+		&businessProfile.BusinessIndustry.ID,
+		&businessProfile.BusinessIndustry.Name,
+		&businessProfile.BusinessName,
+		&businessProfile.Country.ID,
+		&businessProfile.Country.Name,
+		&businessProfile.State.ID,
+		&businessProfile.State.Name,
+		&businessProfile.Region.ID,
+		&businessProfile.Region.Name,
+		&businessProfile.Email,
+		&businessProfile.PhoneNumber,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrBusinessProfileNotFound
+		}
+
+		return nil, err
+	}
+
+	return &businessProfile, nil
+}
+
+func (r *repository) UpdateBusinessProfile(ctx context.Context, data BusinessProfile) (*BusinessProfile, error) {
+	query := `
+        INSERT INTO business_profiles (user_id, business_industry_id, business_name, country_id, state_id, region_id, email, phone_number)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (user_id)
+		DO UPDATE SET
+			business_industry_id = EXCLUDED.business_industry_id,
+			business_name = EXCLUDED.business_name,
+			country_id = EXCLUDED.country_id,
+			state_id = EXCLUDED.state_id,
+			region_id = EXCLUDED.region_id,
+			email = EXCLUDED.email,
+			phone_number = EXCLUDED.phone_number;
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	if _, err := r.client.Exec(
+		ctx,
+		query,
+		data.UserID,
+		data.BusinessIndustry.ID,
+		data.BusinessName,
+		data.Country.ID,
+		data.State.ID,
+		data.Region.ID,
+		data.Email,
+		data.PhoneNumber,
+	); err != nil {
+		return nil, err
+	}
+
+	return r.GetUserBusinessProfile(ctx, data.UserID)
 }

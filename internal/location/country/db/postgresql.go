@@ -27,7 +27,7 @@ func New(client *pgxpool.Pool, logger *zap.Logger) *repository {
 func (r *repository) GetAll(ctx context.Context) ([]country.Country, error) {
 	query := `SELECT id, name FROM countries`
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	rows, err := r.client.Query(ctx, query)
 	if err != nil {
@@ -63,7 +63,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*country.Country, err
 		WHERE id=$1
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var country country.Country
 	err := r.client.QueryRow(ctx, query, id).Scan(&country.ID, &country.Name)

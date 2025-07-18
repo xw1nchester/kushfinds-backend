@@ -21,7 +21,9 @@ var validate = validator.New()
 
 type Service interface {
 	GetByID(ctx context.Context, id int) (*user.User, error)
-	UpdateProfile(ctx context.Context, id int, data user.User) (*user.User, error)
+	UpdateProfile(ctx context.Context, data user.User) (*user.User, error)
+	GetUserBusinessProfile(ctx context.Context, userID int) (*user.BusinessProfile, error)
+	UpdateBusinessProfile(ctx context.Context, data user.BusinessProfile) (*user.BusinessProfile, error)
 }
 
 type handler struct {
@@ -40,11 +42,18 @@ func New(service Service, authMiddleware func(http.Handler) http.Handler, logger
 
 // TODO: группировать
 func (h *handler) Register(router chi.Router) {
-	router.Group(func(privateUserRouter chi.Router) {
-		privateUserRouter.Use(h.authMiddleware)
+	router.Route("/users", func(userRouter chi.Router) {
+		userRouter.Group(func(privateUserRouter chi.Router) {
+			privateUserRouter.Use(h.authMiddleware)
 
-		privateUserRouter.Get("/users/me", apperror.Middleware(h.userHandler))
-		privateUserRouter.Patch("/users/profile", apperror.Middleware(h.updateProfileHandler))
+			privateUserRouter.Get("/me", apperror.Middleware(h.userHandler))
+			privateUserRouter.Patch("/profile", apperror.Middleware(h.updateProfileHandler))
+
+			privateUserRouter.Route("/business", func(businessRouter chi.Router) {
+				businessRouter.Get("/", apperror.Middleware(h.getBusinessProfileHandler))
+				businessRouter.Patch("/", apperror.Middleware(h.updateBusinessProfileHandler))
+			})
+		})
 	})
 }
 
@@ -73,7 +82,6 @@ func (h *handler) userHandler(w http.ResponseWriter, r *http.Request) error {
 func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto ProfileRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
-		h.logger.Error(err.Error())
 		return apperror.ErrDecodeBody
 	}
 
@@ -106,7 +114,6 @@ func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) e
 
 	updatedUser, err := h.service.UpdateProfile(
 		r.Context(),
-		userID,
 		user.User{
 			ID:          userID,
 			FirstName:   dto.FirstName,
@@ -123,6 +130,61 @@ func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) e
 	}
 
 	render.JSON(w, r, user.UserResponse{User: *updatedUser})
+
+	return nil
+}
+
+func (h *handler) getBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
+	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+
+	businessProfile, err := h.service.GetUserBusinessProfile(r.Context(), userID)
+	if err != nil {
+		return err
+	}
+
+	render.JSON(w, r, user.BusinessProfileResponse{BusinessProfile: businessProfile})
+
+	return nil
+}
+
+func (h *handler) updateBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
+	var dto BusinessProfileRequest
+	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		return apperror.ErrDecodeBody
+	}
+
+	if err := validate.Struct(dto); err != nil {
+		return apperror.NewValidationErr(err.(validator.ValidationErrors))
+	}
+
+	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+
+	businessProfile, err := h.service.UpdateBusinessProfile(
+		r.Context(),
+		user.BusinessProfile{
+			UserID: userID,
+			BusinessIndustry: user.BusinessIndustry{
+				ID: int(dto.BusinessIndustryID),
+			},
+			BusinessName: dto.BusinessName,
+			Country: country.Country{
+				ID: int(dto.CountryID),
+			},
+			State: state.State{
+				ID: int(dto.StateID),
+			},
+			Region: region.Region{
+				ID: int(dto.RegionID),
+			},
+			Email:       dto.Email,
+			PhoneNumber: dto.PhoneNumber,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	render.JSON(w, r, user.BusinessProfileResponse{BusinessProfile: businessProfile})
 
 	return nil
 }

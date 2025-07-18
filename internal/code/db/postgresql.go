@@ -36,7 +36,7 @@ func (r *repository) Create(ctx context.Context, code string, codeType string, u
 			expiry_date = EXCLUDED.expiry_date;
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
@@ -51,7 +51,7 @@ func (r *repository) CheckRecentlyCodeExists(ctx context.Context, codeType strin
 		WHERE type=$1 AND user_id=$2 AND retry_date>NOW()
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var id int
 	err := r.client.QueryRow(ctx, query, codeType, userID).Scan(&id)
@@ -71,7 +71,7 @@ func (r *repository) CheckNotExpiryCodeExists(ctx context.Context, code string, 
 		WHERE code=$1 AND type=$2 AND user_id=$3 AND expiry_date>NOW()
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var id int
 	err := r.client.QueryRow(ctx, query, code, codeType, userID).Scan(&id)

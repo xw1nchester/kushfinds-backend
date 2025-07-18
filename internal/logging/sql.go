@@ -6,6 +6,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func LogSQLQuery(logger zap.Logger, sql string) {
+func LogSQLQuery(logger *zap.Logger, sql string) {
 	logger.Debug(strings.Join(strings.Fields(sql), " "))
 }

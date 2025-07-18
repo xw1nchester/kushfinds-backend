@@ -11,3 +11,13 @@ type ProfileRequest struct {
 	StateID     *types.IntOrString `json:"stateId" validate:"omitempty"`
 	RegionID    *types.IntOrString `json:"regionId" validate:"omitempty"`
 }
+
+type BusinessProfileRequest struct {
+	BusinessIndustryID types.IntOrString `json:"businessIndustryId" validate:"required"`
+	BusinessName       string            `json:"businessName" validate:"required,min=3,max=30"`
+	CountryID          types.IntOrString `json:"countryId" validate:"required"`
+	StateID            types.IntOrString `json:"stateId" validate:"required"`
+	RegionID           types.IntOrString `json:"regionId" validate:"required"`
+	Email              string            `json:"email" validate:"required,email"`
+	PhoneNumber        string            `json:"phoneNumber" validate:"required"`
+}

@@ -27,3 +27,23 @@ type User struct {
 type UserResponse struct {
 	User User `json:"user"`
 }
+
+type BusinessIndustry struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type BusinessProfile struct {
+	UserID           int              `json:"-"`
+	BusinessIndustry BusinessIndustry `json:"businessIndustry"`
+	BusinessName     string           `json:"businessName"`
+	Country          country.Country  `json:"country"`
+	State            state.State      `json:"state"`
+	Region           region.Region    `json:"region"`
+	Email            string           `json:"email"`
+	PhoneNumber      string           `json:"phoneNumber"`
+}
+
+type BusinessProfileResponse struct {
+	BusinessProfile *BusinessProfile `json:"businessProfile"`
+}

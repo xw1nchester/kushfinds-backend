@@ -22,6 +22,8 @@ type Repository interface {
 	SetProfileInfo(ctx context.Context, user db.User) (*db.User, error)
 	SetPassword(ctx context.Context, id int, passwordHash []byte) error
 	UpdateProfile(ctx context.Context, user db.User) (*db.User, error)
+	GetUserBusinessProfile(ctx context.Context, userID int) (*db.BusinessProfile, error)
+	UpdateBusinessProfile(ctx context.Context, data db.BusinessProfile) (*db.BusinessProfile, error)
 }
 
 type CountryService interface {
@@ -60,6 +62,7 @@ func New(
 	}
 }
 
+// TODO: у db.User сделать метод ToDomain, а у user.User ToDB
 func createUserDto(data *db.User) *user.User {
 	return &user.User{
 		ID:            data.ID,
@@ -200,7 +203,7 @@ func (s *service) SetPassword(ctx context.Context, id int, passwordHash []byte) 
 	return nil
 }
 
-func (s *service) UpdateProfile(ctx context.Context, id int, data user.User) (*user.User, error) {
+func (s *service) UpdateProfile(ctx context.Context, data user.User) (*user.User, error) {
 	if data.Country == nil && (data.State != nil || data.Region != nil) {
 		return nil, apperror.NewAppError("country should not be empty")
 	}
@@ -246,4 +249,62 @@ func (s *service) UpdateProfile(ctx context.Context, id int, data user.User) (*u
 	}
 
 	return createUserDto(updatedUser), nil
+}
+
+func (s *service) GetUserBusinessProfile(ctx context.Context, userID int) (*user.BusinessProfile, error) {
+	businessProfile, err := s.repository.GetUserBusinessProfile(ctx, userID)
+	if err != nil {
+		if errors.Is(err, db.ErrBusinessProfileNotFound) {
+			return nil, nil
+		}
+
+		s.logger.Error("unexpected error when fetching business profile", zap.Error(err))
+		return nil, err
+	}
+
+	return businessProfile.ToDomain(), nil
+}
+
+func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessProfile) (*user.BusinessProfile, error) {
+	// TODO: check business industry id
+	
+	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.stateService.GetByID(ctx, data.State.ID); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.regionService.GetByID(ctx, data.Region.ID); err != nil {
+		return nil, err
+	}
+
+	businessProfile, err := s.repository.UpdateBusinessProfile(
+		ctx,
+		db.BusinessProfile{
+			UserID: data.UserID,
+			BusinessIndustry: db.BusinessIndustry{
+				ID: data.BusinessIndustry.ID,
+			},
+			BusinessName: data.BusinessName,
+			Country: country.Country{
+				ID: data.Country.ID,
+			},
+			State: state.State{
+				ID: data.State.ID,
+			},
+			Region: region.Region{
+				ID: data.Region.ID,
+			},
+			Email:       data.Email,
+			PhoneNumber: data.PhoneNumber,
+		},
+	)
+	if err != nil {
+		s.logger.Error("unexpected error when updating business profile", zap.Error(err))
+		return nil, err
+	}
+
+	return businessProfile.ToDomain(), nil
 }

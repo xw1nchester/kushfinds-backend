@@ -38,7 +38,7 @@ func (r *repository) CreateSession(ctx context.Context, token string, userAgent 
 			expiry_date = EXCLUDED.expiry_date;
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 
@@ -54,7 +54,7 @@ func (r *repository) DeleteNotExpirySessionByToken(ctx context.Context, token st
 		RETURNING user_id
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	executor := postgresql.GetExecutor(ctx, r.client)
 	var userID int

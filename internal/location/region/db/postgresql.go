@@ -34,7 +34,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*region.Region, error
 		WHERE id=$1
     `
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	var region region.Region
 	err := r.client.QueryRow(ctx, query, id).Scan(&region.ID, &region.Name)
@@ -52,7 +52,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*region.Region, error
 func (r *repository) GetAllByStateID(ctx context.Context, stateID int) ([]region.Region, error) {
 	query := `SELECT id, name FROM regions WHERE state_id=$1`
 
-	logging.LogSQLQuery(*r.logger, query)
+	logging.LogSQLQuery(r.logger, query)
 
 	rows, err := r.client.Query(ctx, query, stateID)
 	if err != nil {
