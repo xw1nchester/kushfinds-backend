@@ -30,7 +30,10 @@ import (
 	stateservice "github.com/vetrovegor/kushfinds-backend/internal/location/state/service"
 	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	userhandler "github.com/vetrovegor/kushfinds-backend/internal/user/handler"
+	uploadhandler "github.com/vetrovegor/kushfinds-backend/internal/upload/handler"
+	uploadservice "github.com/vetrovegor/kushfinds-backend/internal/upload/service"
 	userservice "github.com/vetrovegor/kushfinds-backend/internal/user/service"
+	minioclient "github.com/vetrovegor/kushfinds-backend/pkg/client/minio"
 	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
 	pgtx "github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
@@ -52,6 +55,16 @@ func New(log *zap.Logger, cfg config.Config) *App {
 			Database: cfg.PostgreSQL.Database,
 		},
 	)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	minioClient, err := minioclient.New(minioclient.Config{
+		Endpoint: cfg.Minio.Endpoint,
+		AccessKeyID: cfg.Minio.AccessKeyID,
+		SecretAccessKey: cfg.Minio.SecretAccessKey,
+		UseSSL: cfg.Minio.UseSSL,
+	})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -147,6 +160,14 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		log.Info("register state handlers")
 
 		stateHandler.Register(r)
+
+		uploadService := uploadservice.New(minioClient, log)
+
+		uploadHandler := uploadhandler.New(uploadService, authMiddleware, log)
+
+		log.Info("register upload handlers")
+
+		uploadHandler.Register(r)
 	})
 
 	srv := &http.Server{

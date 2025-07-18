@@ -3,3 +3,4 @@ tmp
 .vscode
 config/*
 !config/example.yml
+minio-data

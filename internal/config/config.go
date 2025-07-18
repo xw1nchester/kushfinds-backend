@@ -14,6 +14,7 @@ type Config struct {
 	HTTPServer `yaml:"http_server"`
 	JWT        `yaml:"jwt"`
 	SMTP       `yaml:"smtp"`
+	Minio      `yaml:"minio"`
 }
 
 type PostgreSQL struct {
@@ -29,7 +30,7 @@ type HTTPServer struct {
 	Timeout          time.Duration `yaml:"timeout" env-default:"4s"`
 	IdleTimeout      time.Duration `yaml:"idle_timeout" env-default:"60s"`
 	AllowedOrigins   []string      `yaml:"allowed_origins" env-default:"*"`
-	AllowCredentials bool          `yaml:"allow_credentials" env-default:"*"`
+	AllowCredentials bool          `yaml:"allow_credentials"`
 	AllowedMethods   []string      `yaml:"allowed_methods" env-default:"*"`
 	AllowedHeaders   []string      `yaml:"allowed_headers" env-default:"*"`
 }
@@ -45,6 +46,13 @@ type SMTP struct {
 	Port     string `yaml:"port" env-required:"true"`
 	Username string `yaml:"username" env-required:"true"`
 	Password string `yaml:"password" env-required:"true"`
+}
+
+type Minio struct {
+	Endpoint        string `yaml:"endpoint" env-required:"true"`
+	AccessKeyID     string `yaml:"access_key_id" env-required:"true"`
+	SecretAccessKey string `yaml:"secret_access_key" env-required:"true"`
+	UseSSL          bool   `yaml:"use_ssl"`
 }
 
 func MustLoad() *Config {
@@ -64,7 +72,7 @@ func MustLoadByPath(configPath string) *Config {
 	var cfg Config
 
 	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		panic("config path is empty: " + err.Error())
+		panic("config reading error: " + err.Error())
 	}
 
 	return &cfg
