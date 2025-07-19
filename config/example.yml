@@ -32,3 +32,8 @@ smtp:
   port: 587
   username: your_email@mail.ru
   password: email_app_password
+minio:
+  endpoint: localhost:9000
+  access_key_id: ROOTUSER
+  secret_access_key: MY$3CR3T
+  use_ssl: false

@@ -79,12 +79,44 @@ definitions:
       name:
         type: string
     type: object
+  handler.BusinessProfileRequest:
+    properties:
+      businessIndustryId:
+        type: integer
+      businessName:
+        maxLength: 30
+        minLength: 3
+        type: string
+      countryId:
+        type: integer
+      email:
+        type: string
+      phoneNumber:
+        type: string
+      regionId:
+        type: integer
+      stateId:
+        type: integer
+    required:
+    - businessIndustryId
+    - businessName
+    - countryId
+    - email
+    - phoneNumber
+    - regionId
+    - stateId
+    type: object
   handler.ContriesResponse:
     properties:
       countries:
         items:
           $ref: '#/definitions/country.Country'
         type: array
+    type: object
+  handler.FileResponse:
+    properties:
+      file:
+        $ref: '#/definitions/upload.File'
     type: object
   handler.ProfileRequest:
     properties:
@@ -134,6 +166,44 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  upload.File:
+    properties:
+      contentType:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+    type: object
+  user.BusinessIndustry:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  user.BusinessProfile:
+    properties:
+      businessIndustry:
+        $ref: '#/definitions/user.BusinessIndustry'
+      businessName:
+        type: string
+      country:
+        $ref: '#/definitions/country.Country'
+      email:
+        type: string
+      phoneNumber:
+        type: string
+      region:
+        $ref: '#/definitions/region.Region'
+      state:
+        $ref: '#/definitions/state.State'
+    type: object
+  user.BusinessProfileResponse:
+    properties:
+      businessProfile:
+        $ref: '#/definitions/user.BusinessProfile'
     type: object
   user.User:
     properties:
@@ -448,6 +518,104 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - location
+  /static/{filename}:
+    get:
+      parameters:
+      - description: file name
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - upload
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: form data
+        in: formData
+        name: file
+        required: true
+        type: file
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.FileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - upload
+  /users/business:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.BusinessProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - users
+    patch:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.BusinessProfileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.BusinessProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - users
   /users/me:
     get:
       responses:
@@ -463,6 +631,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
       tags:
       - users
   /users/profile:
@@ -487,6 +657,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
       tags:
       - users
 securityDefinitions:

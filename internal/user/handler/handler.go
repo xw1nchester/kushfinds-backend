@@ -57,6 +57,7 @@ func (h *handler) Register(router chi.Router) {
 	})
 }
 
+// @Security	ApiKeyAuth
 // @Tags		users
 // @Success	200		{object}	user.UserResponse
 // @Failure	400,500	{object}	apperror.AppError
@@ -74,6 +75,7 @@ func (h *handler) userHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// @Security	ApiKeyAuth
 // @Tags		users
 // @Param		request	body		ProfileRequest	true	"request body"
 // @Success	200		{object}	user.UserResponse
@@ -134,6 +136,11 @@ func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
+// @Security	ApiKeyAuth
+// @Tags		users
+// @Success	200		{object}	user.BusinessProfileResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/users/business [get]
 func (h *handler) getBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
 
@@ -147,6 +154,12 @@ func (h *handler) getBusinessProfileHandler(w http.ResponseWriter, r *http.Reque
 	return nil
 }
 
+// @Security	ApiKeyAuth
+// @Tags		users
+// @Param		request	body		BusinessProfileRequest	true	"request body"
+// @Success	200		{object}	user.BusinessProfileResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/users/business [patch]
 func (h *handler) updateBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto BusinessProfileRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {

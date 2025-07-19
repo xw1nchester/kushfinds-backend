@@ -2,13 +2,18 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
+	"strconv"
+	"time"
 
-	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
+	"github.com/vetrovegor/kushfinds-backend/internal/upload"
 	"go.uber.org/zap"
+)
+
+const (
+	BucketName = "default"
 )
 
 type service struct {
@@ -26,61 +31,67 @@ func New(
 	}
 }
 
-// TODO: возможно будет работать и без fileExtension
-func (s *service) UploadFile(ctx context.Context, userID int, reader io.Reader, fileExtension string) error {
-	bucketName := fmt.Sprintf("user-%d", userID)
-	
-	exists, err := s.minioClient.BucketExists(ctx, bucketName)
+// TODO: возвращать структура файла
+func (s *service) UploadFile(ctx context.Context, reader io.Reader, size int64, contentType string) (*upload.File, error) {
+	exists, err := s.minioClient.BucketExists(ctx, BucketName)
 	if err != nil {
 		s.logger.Error("error checking if bucket exists", zap.Error(err))
-		return err
+		return nil, err
 	}
 
 	if !exists {
-		err = s.minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		err = s.minioClient.MakeBucket(ctx, BucketName, minio.MakeBucketOptions{})
 		if err != nil {
 			s.logger.Error("error creating bucket", zap.Error(err))
-			return err
+			return nil, err
 		}
 	}
 
-	fileName := fmt.Sprintf("%s.%s", uuid.NewString(), fileExtension)
-
-	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		s.logger.Error("error when opening file", zap.Error(err))
-		return err
-	}
-
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			s.logger.Error("error when closing file", zap.Error(err))
-		}
-
-		err = os.Remove(fileName)
-		if err != nil {
-			s.logger.Error("error when removing file", zap.Error(err))
-		}
-	}()
-
-	io.Copy(f, reader)
-
-	ui, err := s.minioClient.FPutObject(
+	ui, err := s.minioClient.PutObject(
 		ctx,
-		bucketName,
-		fileName,
-		fileName,
-		minio.PutObjectOptions{},
+		BucketName,
+		strconv.FormatInt(time.Now().UnixMilli(), 10),
+		reader,
+		size,
+		minio.PutObjectOptions{
+			ContentType: contentType,
+		},
 	)
 	if err == nil {
-		s.logger.Info("uploaded info",
+		s.logger.Info("uploaded file info",
 			zap.String("bucket", ui.Bucket),
 			zap.String("key", ui.Key),
 			zap.String("etag", ui.ETag),
 			zap.Int64("size", ui.Size),
+			zap.String("version_id", ui.VersionID),
+			zap.Time("version_id", ui.LastModified),
 		)
 	}
 
-	return err
+	return &upload.File{
+		Name:        ui.Key,
+		ContentType: contentType,
+		Size:        ui.Size,
+	}, nil
+}
+
+func (s *service) GetFile(ctx context.Context, filename string) (*upload.File, error) {
+	obj, err := s.minioClient.GetObject(ctx, BucketName, filename, minio.GetObjectOptions{})
+	if err != nil {
+		s.logger.Error("error getting object", zap.Error(err))
+		return nil, apperror.ErrNotFound
+	}
+
+	stat, err := obj.Stat()
+	if err != nil {
+		s.logger.Error("error getting object stats", zap.Error(err))
+		return nil, apperror.ErrNotFound
+	}
+
+	return &upload.File{
+		Object:      obj,
+		Name:        stat.Key,
+		ContentType: stat.ContentType,
+		Size:        stat.Size,
+	}, nil
 }

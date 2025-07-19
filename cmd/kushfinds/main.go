@@ -10,6 +10,7 @@ import (
 	"github.com/vetrovegor/kushfinds-backend/internal/app"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	_ "github.com/vetrovegor/kushfinds-backend/docs"
 )
@@ -27,8 +28,9 @@ import (
 func main() {
 	cfg := config.MustLoad()
 
-	log, _ := zap.NewDevelopment()
-	defer log.Sync()
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	log, _ := config.Build()
 
 	app := app.New(log, *cfg)
 
