@@ -118,6 +118,13 @@ definitions:
       file:
         $ref: '#/definitions/upload.File'
     type: object
+  handler.IndustriesResponse:
+    properties:
+      industries:
+        items:
+          $ref: '#/definitions/industry.Industry'
+        type: array
+    type: object
   handler.ProfileRequest:
     properties:
       age:
@@ -152,6 +159,13 @@ definitions:
         items:
           $ref: '#/definitions/state.State'
         type: array
+    type: object
+  industry.Industry:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
     type: object
   region.Region:
     properties:
@@ -478,6 +492,23 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - location
+  /industries:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.IndustriesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - industry
   /ping:
     get:
       responses:

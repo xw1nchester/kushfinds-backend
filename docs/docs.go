@@ -384,6 +384,33 @@ const docTemplate = `{
                 }
             }
         },
+        "/industries": {
+            "get": {
+                "tags": [
+                    "industry"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.IndustriesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "tags": [
@@ -856,6 +883,17 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.IndustriesResponse": {
+            "type": "object",
+            "properties": {
+                "industries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/industry.Industry"
+                    }
+                }
+            }
+        },
         "handler.ProfileRequest": {
             "type": "object",
             "properties": {
@@ -905,6 +943,17 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/state.State"
                     }
+                }
+            }
+        },
+        "industry.Industry": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

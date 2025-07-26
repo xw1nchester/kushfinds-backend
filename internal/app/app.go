@@ -21,17 +21,20 @@ import (
 	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
 	"github.com/vetrovegor/kushfinds-backend/internal/config"
 	countrydb "github.com/vetrovegor/kushfinds-backend/internal/location/country/db"
+	industrydb "github.com/vetrovegor/kushfinds-backend/internal/industry/db"
 	countryhandler "github.com/vetrovegor/kushfinds-backend/internal/location/country/handler"
 	countryservice "github.com/vetrovegor/kushfinds-backend/internal/location/country/service"
 	regiondb "github.com/vetrovegor/kushfinds-backend/internal/location/region/db"
 	regionservice "github.com/vetrovegor/kushfinds-backend/internal/location/region/service"
 	statedb "github.com/vetrovegor/kushfinds-backend/internal/location/state/db"
 	statehandler "github.com/vetrovegor/kushfinds-backend/internal/location/state/handler"
+	industryhandler "github.com/vetrovegor/kushfinds-backend/internal/industry/handler"
 	stateservice "github.com/vetrovegor/kushfinds-backend/internal/location/state/service"
 	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
 	userhandler "github.com/vetrovegor/kushfinds-backend/internal/user/handler"
 	uploadhandler "github.com/vetrovegor/kushfinds-backend/internal/upload/handler"
 	uploadservice "github.com/vetrovegor/kushfinds-backend/internal/upload/service"
+	industryservice "github.com/vetrovegor/kushfinds-backend/internal/industry/service"
 	userservice "github.com/vetrovegor/kushfinds-backend/internal/user/service"
 	minioclient "github.com/vetrovegor/kushfinds-backend/pkg/client/minio"
 	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
@@ -137,6 +140,10 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		authMiddleware := jwtauth.NewMiddleware(log, tokenManager)
 
+		industryRepository := industrydb.New(pgClient, log)
+
+		industryService := industryservice.New(industryRepository, log)
+
 		authHandler := authhandler.New(authService, authMiddleware, log)
 
 		log.Info("register auth handlers")
@@ -164,6 +171,12 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		uploadService := uploadservice.New(minioClient, log)
 
 		uploadHandler := uploadhandler.New(uploadService, authMiddleware, log)
+
+		industryHandler := industryhandler.New(industryService, log)
+
+		log.Info("register industry handlers")
+
+		industryHandler.Register(r)
 
 		log.Info("register upload handlers")
 
@@ -203,7 +216,6 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 			logger.Info("request",
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
-				// zap.String("status", r.Response.Status),
 				zap.String("remote", r.RemoteAddr),
 				zap.Duration("duration", time.Since(start)),
 			)

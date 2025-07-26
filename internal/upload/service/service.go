@@ -31,7 +31,6 @@ func New(
 	}
 }
 
-// TODO: возвращать структура файла
 func (s *service) UploadFile(ctx context.Context, reader io.Reader, size int64, contentType string) (*upload.File, error) {
 	exists, err := s.minioClient.BucketExists(ctx, BucketName)
 	if err != nil {

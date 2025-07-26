@@ -39,19 +39,11 @@ func New(
 }
 
 func (s *service) GetAll(ctx context.Context) ([]country.Country, error) {
-	data, err := s.repository.GetAll(ctx)
+	countries, err := s.repository.GetAll(ctx)
 	if err != nil {
 		s.logger.Error("unexpected error when fetching all countries", zap.Error(err))
 
 		return nil, err
-	}
-
-	var countries []country.Country
-	for _, a := range data {
-		countries = append(countries, country.Country{
-			ID:   a.ID,
-			Name: a.Name,
-		})
 	}
 
 	return countries, nil
