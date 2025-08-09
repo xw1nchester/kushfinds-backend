@@ -40,7 +40,6 @@ func New(service Service, authMiddleware func(http.Handler) http.Handler, logger
 	}
 }
 
-// TODO: группировать
 func (h *handler) Register(router chi.Router) {
 	router.Route("/users", func(userRouter chi.Router) {
 		userRouter.Group(func(privateUserRouter chi.Router) {

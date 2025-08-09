@@ -321,6 +321,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/brands": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "market"
+                ],
+                "parameters": [
+                    {
+                        "description": "request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.BrandRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.BrandResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/countries": {
             "get": {
                 "tags": [
@@ -394,6 +437,33 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.IndustriesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/market-sections": {
+            "get": {
+                "tags": [
+                    "market"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.MarketSectionsResponse"
                         }
                     },
                     "400": {
@@ -816,6 +886,53 @@ const docTemplate = `{
                 }
             }
         },
+        "brand.Brand": {
+            "type": "object",
+            "properties": {
+                "banner": {
+                    "type": "string"
+                },
+                "country": {
+                    "$ref": "#/definitions/country.Country"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "logo": {
+                    "type": "string"
+                },
+                "marketSection": {
+                    "$ref": "#/definitions/marketsection.MarketSection"
+                },
+                "marketSections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/marketsection.MarketSection"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "states": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/state.State"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "country.Country": {
             "type": "object",
             "properties": {
@@ -824,6 +941,65 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.BrandRequest": {
+            "type": "object",
+            "required": [
+                "banner",
+                "country",
+                "email",
+                "logo",
+                "marketSection",
+                "marketSubSectionIds",
+                "name",
+                "phoneNumber",
+                "stateIds"
+            ],
+            "properties": {
+                "banner": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "logo": {
+                    "description": "TODO: validate url",
+                    "type": "string"
+                },
+                "marketSection": {
+                    "type": "integer"
+                },
+                "marketSubSectionIds": {
+                    "description": "возможно нужно использовать dive\nTODO: подумать как оставлять только уникальные",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "stateIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "handler.BrandResponse": {
+            "type": "object",
+            "properties": {
+                "brand": {
+                    "$ref": "#/definitions/brand.Brand"
                 }
             }
         },
@@ -894,6 +1070,17 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.MarketSectionsResponse": {
+            "type": "object",
+            "properties": {
+                "marketSections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/marketsection.MarketSection"
+                    }
+                }
+            }
+        },
         "handler.ProfileRequest": {
             "type": "object",
             "properties": {
@@ -947,6 +1134,17 @@ const docTemplate = `{
             }
         },
         "industry.Industry": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "marketsection.MarketSection": {
             "type": "object",
             "properties": {
                 "id": {

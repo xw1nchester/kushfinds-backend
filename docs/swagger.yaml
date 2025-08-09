@@ -72,12 +72,87 @@ definitions:
     - lastName
     - username
     type: object
+  brand.Brand:
+    properties:
+      banner:
+        type: string
+      country:
+        $ref: '#/definitions/country.Country'
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      logo:
+        type: string
+      marketSection:
+        $ref: '#/definitions/marketsection.MarketSection'
+      marketSections:
+        items:
+          $ref: '#/definitions/marketsection.MarketSection'
+        type: array
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      states:
+        items:
+          $ref: '#/definitions/state.State'
+        type: array
+      updatedAt:
+        type: string
+    type: object
   country.Country:
     properties:
       id:
         type: integer
       name:
         type: string
+    type: object
+  handler.BrandRequest:
+    properties:
+      banner:
+        type: string
+      country:
+        type: integer
+      email:
+        type: string
+      logo:
+        description: 'TODO: validate url'
+        type: string
+      marketSection:
+        type: integer
+      marketSubSectionIds:
+        description: |-
+          возможно нужно использовать dive
+          TODO: подумать как оставлять только уникальные
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      stateIds:
+        items:
+          type: integer
+        type: array
+    required:
+    - banner
+    - country
+    - email
+    - logo
+    - marketSection
+    - marketSubSectionIds
+    - name
+    - phoneNumber
+    - stateIds
+    type: object
+  handler.BrandResponse:
+    properties:
+      brand:
+        $ref: '#/definitions/brand.Brand'
     type: object
   handler.BusinessProfileRequest:
     properties:
@@ -125,6 +200,13 @@ definitions:
           $ref: '#/definitions/industry.Industry'
         type: array
     type: object
+  handler.MarketSectionsResponse:
+    properties:
+      marketSections:
+        items:
+          $ref: '#/definitions/marketsection.MarketSection'
+        type: array
+    type: object
   handler.ProfileRequest:
     properties:
       age:
@@ -161,6 +243,13 @@ definitions:
         type: array
     type: object
   industry.Industry:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  marketsection.MarketSection:
     properties:
       id:
         type: integer
@@ -452,6 +541,32 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
+  /brands:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.BrandRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.BrandResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
   /countries:
     get:
       responses:
@@ -509,6 +624,23 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - industry
+  /market-sections:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.MarketSectionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - market
   /ping:
     get:
       responses:

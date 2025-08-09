@@ -13,6 +13,12 @@ import (
 	_ "github.com/vetrovegor/kushfinds-backend/docs"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth"
 	authdb "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
+	marketsectiondb "github.com/vetrovegor/kushfinds-backend/internal/market/section/db"
+	marketsectionservice "github.com/vetrovegor/kushfinds-backend/internal/market/section/service"
+	marketsectionhandler "github.com/vetrovegor/kushfinds-backend/internal/market/section/handler"
+	branddb "github.com/vetrovegor/kushfinds-backend/internal/market/brand/db"
+	brandservice "github.com/vetrovegor/kushfinds-backend/internal/market/brand/service"
+	brandhandler "github.com/vetrovegor/kushfinds-backend/internal/market/brand/handler"
 	authhandler "github.com/vetrovegor/kushfinds-backend/internal/auth/handler"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
 	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
@@ -144,6 +150,15 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		industryService := industryservice.New(industryRepository, log)
 
+		brandRepository := branddb.New(pgClient, log)
+
+		brandService := brandservice.New(
+			brandRepository,
+			countryService,
+			stateService,
+			log,
+		)
+
 		authHandler := authhandler.New(authService, authMiddleware, log)
 
 		log.Info("register auth handlers")
@@ -168,19 +183,39 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		stateHandler.Register(r)
 
-		uploadService := uploadservice.New(minioClient, log)
-
-		uploadHandler := uploadhandler.New(uploadService, authMiddleware, log)
-
 		industryHandler := industryhandler.New(industryService, log)
 
 		log.Info("register industry handlers")
 
 		industryHandler.Register(r)
 
+		uploadService := uploadservice.New(minioClient, log)
+
+		uploadHandler := uploadhandler.New(uploadService, authMiddleware, log)
+
 		log.Info("register upload handlers")
 
 		uploadHandler.Register(r)
+
+		marketSectionRepository := marketsectiondb.New(pgClient, log)
+
+		marketSectionService := marketsectionservice.New(marketSectionRepository, log)
+
+		marketSectionHandler := marketsectionhandler.New(marketSectionService, log)
+
+		log.Info("register market section handlers")
+
+		marketSectionHandler.Register(r)
+
+		brandHandler := brandhandler.New(
+			brandService, 
+			authMiddleware, 
+			log,
+		)
+
+		log.Info("register brand handlers")
+
+		brandHandler.Register(r)
 	})
 
 	srv := &http.Server{

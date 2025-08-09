@@ -72,3 +72,7 @@ func (s *service) GetAllByCountryID(ctx context.Context, id int) ([]state.State,
 func (s *service) GetStateRegions(ctx context.Context, id int) ([]region.Region, error) {
 	return s.regionService.GetAllByStateID(ctx, id)
 }
+
+func (s *service) CheckStatesExist(ctx context.Context, stateIDs []int) error {
+	return nil
+}
