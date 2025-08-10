@@ -32,3 +32,6 @@ cover:
 	go test -count=1 -race -coverprofile=coverage.out ./internal/...
 	go tool cover -html=coverage.out
 	rm coverage.out
+
+minio:
+	docker compose up -d minio

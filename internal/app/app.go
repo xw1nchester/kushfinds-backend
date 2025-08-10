@@ -150,6 +150,10 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		industryService := industryservice.New(industryRepository, log)
 
+		marketSectionRepository := marketsectiondb.New(pgClient, log)
+
+		marketSectionService := marketsectionservice.New(marketSectionRepository, log)
+
 		brandRepository := branddb.New(pgClient, log)
 
 		brandService := brandservice.New(
@@ -157,6 +161,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 			userService,
 			countryService,
 			stateService,
+			marketSectionService,
 			log,
 		)
 
@@ -197,10 +202,6 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		log.Info("register upload handlers")
 
 		uploadHandler.Register(r)
-
-		marketSectionRepository := marketsectiondb.New(pgClient, log)
-
-		marketSectionService := marketsectionservice.New(marketSectionRepository, log)
 
 		marketSectionHandler := marketsectionhandler.New(marketSectionService, log)
 

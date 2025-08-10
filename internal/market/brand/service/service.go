@@ -32,12 +32,17 @@ type StateService interface {
 	CheckStatesExist(ctx context.Context, stateIDs []int) error
 }
 
+type MarketSectionService interface {
+	CheckStatesExist(ctx context.Context, marketSectionIDs []int) error
+}
+
 type service struct {
-	repository     Repository
-	userService    UserService
-	countryService CountryService
-	stateService   StateService
-	logger         *zap.Logger
+	repository           Repository
+	userService          UserService
+	countryService       CountryService
+	stateService         StateService
+	marketSectionService MarketSectionService
+	logger               *zap.Logger
 }
 
 func New(
@@ -45,19 +50,44 @@ func New(
 	userService UserService,
 	countryService CountryService,
 	stateService StateService,
+	marketSectionService MarketSectionService,
 	logger *zap.Logger,
 ) *service {
 	return &service{
-		repository:     repository,
-		userService:    userService,
-		countryService: countryService,
-		stateService:   stateService,
-		logger:         logger,
+		repository:           repository,
+		userService:          userService,
+		countryService:       countryService,
+		stateService:         stateService,
+		marketSectionService: marketSectionService,
+		logger:               logger,
 	}
 }
 
 func (s *service) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error) {
 	if err := s.userService.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
+		return nil, err
+	}
+
+	stateIDs := make([]int, len(data.States))
+	for i, s := range data.States {
+		stateIDs[i] = s.ID
+	}
+
+	if err := s.stateService.CheckStatesExist(ctx, stateIDs); err != nil {
+		return nil, err
+	}
+
+	marketSectionIDs := make([]int, len(data.MarketSubSections)+1)
+	marketSectionIDs[0] = data.MarketSection.ID
+	for i, ms := range data.MarketSubSections {
+		marketSectionIDs[i+1] = ms.ID
+	}
+
+	if err := s.marketSectionService.CheckStatesExist(ctx, marketSectionIDs) ; err != nil {
 		return nil, err
 	}
 
@@ -70,22 +100,6 @@ func (s *service) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Bra
 			return nil, ErrBrandNameAlreadyExists
 		}
 	}
-
-	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
-		return nil, err
-	}
-
-	stateIDs := make([]int, len(data.States))
-	for _, state := range data.States {
-		stateIDs = append(stateIDs, state.ID)
-	}
-
-	// TODO: реализовать
-	if err := s.stateService.CheckStatesExist(ctx, stateIDs); err != nil {
-		return nil, err
-	}
-	
-	// TODO: check market sections exists (main and sub)
 
 	createdBrand, err := s.repository.CreateBrand(ctx, data)
 	if err != nil {

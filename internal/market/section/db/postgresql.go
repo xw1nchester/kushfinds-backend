@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -75,4 +76,39 @@ func (r *repository) GetByID(ctx context.Context, id int) (*marketsection.Market
 	}
 
 	return &marketSection, nil
+}
+
+func (r *repository) CheckMarketSectionsExist(
+	ctx context.Context,
+	marketSectionIDs []int,
+) error {
+	if len(marketSectionIDs) == 0 {
+		return nil
+	}
+
+	placeholders := make([]string, len(marketSectionIDs))
+	args := make([]any, len(marketSectionIDs))
+	for i, id := range marketSectionIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(
+		`SELECT COUNT(id) FROM market_sections WHERE id IN (%s)`,
+		strings.Join(placeholders, ", "),
+	)
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var count int
+	err := r.client.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count != len(marketSectionIDs) {
+		return ErrMarketSectionNotFound
+	}
+
+	return nil
 }

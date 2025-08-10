@@ -15,6 +15,7 @@ type Repository interface {
 	GetAll(ctx context.Context) ([]state.State, error)
 	GetByID(ctx context.Context, id int) (*state.State, error)
 	GetAllByCountryID(ctx context.Context, countryID int) ([]state.State, error)
+	CheckStatesExist(ctx context.Context, stateIDs []int) error
 }
 
 type RegionService interface {
@@ -74,5 +75,14 @@ func (s *service) GetStateRegions(ctx context.Context, id int) ([]region.Region,
 }
 
 func (s *service) CheckStatesExist(ctx context.Context, stateIDs []int) error {
-	return nil
+	err := s.repository.CheckStatesExist(ctx, stateIDs)
+	if err != nil {
+		if errors.Is(err, db.ErrStateNotFound) {
+			return apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when check states exists", zap.Error(err))
+	}
+
+	return err
 }
