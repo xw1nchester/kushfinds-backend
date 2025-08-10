@@ -428,3 +428,23 @@ func (r *repository) UpdateBusinessProfile(ctx context.Context, data BusinessPro
 
 	return r.GetUserBusinessProfile(ctx, data.UserID)
 }
+
+func (r *repository) CheckBusinessProfileExists(ctx context.Context, userID int) error {
+	query := `
+        SELECT user_id FROM business_profiles
+		WHERE user_id=$1
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var id int
+	err := r.client.QueryRow(ctx, query, userID).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrBusinessProfileNotFound
+		}
+		return err
+	}
+
+	return nil
+}

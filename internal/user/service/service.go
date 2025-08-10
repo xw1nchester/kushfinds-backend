@@ -13,6 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	ErrBusinessProfileNotFound = apperror.NewAppError("business profile not found")
+)
+
 type Repository interface {
 	GetByID(ctx context.Context, id int) (*db.User, error)
 	GetByEmail(ctx context.Context, email string) (*db.User, error)
@@ -24,6 +28,7 @@ type Repository interface {
 	UpdateProfile(ctx context.Context, user db.User) (*db.User, error)
 	GetUserBusinessProfile(ctx context.Context, userID int) (*db.BusinessProfile, error)
 	UpdateBusinessProfile(ctx context.Context, data db.BusinessProfile) (*db.BusinessProfile, error)
+	CheckBusinessProfileExists(ctx context.Context, userID int) error
 }
 
 type CountryService interface {
@@ -267,7 +272,7 @@ func (s *service) GetUserBusinessProfile(ctx context.Context, userID int) (*user
 
 func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessProfile) (*user.BusinessProfile, error) {
 	// TODO: check business industry id
-	
+
 	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
 		return nil, err
 	}
@@ -307,4 +312,19 @@ func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessP
 	}
 
 	return businessProfile.ToDomain(), nil
+}
+
+func (s *service) CheckBusinessProfileExists(ctx context.Context, userID int) error {
+	err := s.repository.CheckBusinessProfileExists(ctx, userID)
+	if err != nil {
+		if errors.Is(err, db.ErrBusinessProfileNotFound) {
+			return ErrBusinessProfileNotFound
+		}
+
+		s.logger.Info("error when check business profile exists", zap.Error(err))
+
+		return err
+	}
+
+	return nil
 }

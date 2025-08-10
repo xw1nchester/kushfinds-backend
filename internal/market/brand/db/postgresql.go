@@ -23,6 +23,26 @@ func New(client *pgxpool.Pool, logger *zap.Logger) *repository {
 	}
 }
 
+func (r *repository) CheckBrandNameIsAvailable(ctx context.Context, name string) (bool, error) {
+	query := `
+        SELECT id FROM brands
+		WHERE name=$1
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var id int
+	err := r.client.QueryRow(ctx, query, name).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return true, ErrBrandNotFound
+		}
+		return false, err
+	}
+
+	return false, nil
+}
+
 func (r *repository) GetBrandsByUserID(ctx context.Context, id int) ([]brand.Brand, error) {
 	return nil, nil
 }

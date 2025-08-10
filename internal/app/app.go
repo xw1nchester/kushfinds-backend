@@ -154,6 +154,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		brandService := brandservice.New(
 			brandRepository,
+			userService,
 			countryService,
 			stateService,
 			log,
