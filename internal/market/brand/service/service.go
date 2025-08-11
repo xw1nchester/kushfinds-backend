@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
 	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
 	"github.com/vetrovegor/kushfinds-backend/internal/market/brand"
+	"github.com/vetrovegor/kushfinds-backend/internal/market/brand/db"
 	"go.uber.org/zap"
 )
 
@@ -14,10 +16,13 @@ var (
 )
 
 type Repository interface {
-	CheckBrandNameIsAvailable(ctx context.Context, name string) (bool, error)
-	GetBrandsByUserID(ctx context.Context, id int) ([]brand.Brand, error)
-	GetBrandByID(ctx context.Context, id int) (*brand.Brand, error)
+	CheckBrandNameIsAvailable(ctx context.Context, name string, excludeID ...int) (bool, error)
+	GetUserBrands(ctx context.Context, userID int) ([]brand.BrandSummary, error)
+	GetUserBrand(ctx context.Context, brandID, userID int) (*brand.Brand, error)
 	CreateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error)
+	CheckBrandExists(ctx context.Context, brandID, userID int) error
+	UpdateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error)
+	DeleteBrand(ctx context.Context, brandID, userID int) error
 }
 
 type UserService interface {
@@ -64,6 +69,7 @@ func New(
 }
 
 func (s *service) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error) {
+	// TODO: brand data validation, with parameter which show create or update
 	if err := s.userService.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
 		return nil, err
 	}
@@ -81,13 +87,13 @@ func (s *service) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Bra
 		return nil, err
 	}
 
-	marketSectionIDs := make([]int, len(data.MarketSubSections)+1)
-	marketSectionIDs[0] = data.MarketSection.ID
-	for i, ms := range data.MarketSubSections {
-		marketSectionIDs[i+1] = ms.ID
+	marketSectionIDs := make([]int, 0)
+	for _, ms := range data.MarketSubSections {
+		marketSectionIDs = append(marketSectionIDs, ms.ID)
 	}
+	marketSectionIDs = append(marketSectionIDs, data.MarketSection.ID)
 
-	if err := s.marketSectionService.CheckStatesExist(ctx, marketSectionIDs) ; err != nil {
+	if err := s.marketSectionService.CheckStatesExist(ctx, marketSectionIDs); err != nil {
 		return nil, err
 	}
 
@@ -108,4 +114,107 @@ func (s *service) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Bra
 	}
 
 	return createdBrand, nil
+}
+
+func (s *service) GetUserBrands(ctx context.Context, userID int) ([]brand.BrandSummary, error) {
+	brands, err := s.repository.GetUserBrands(ctx, userID)
+	if err != nil {
+		s.logger.Error("unexpected error when fetching user brands", zap.Error(err))
+
+		return nil, err
+	}
+
+	return brands, nil
+}
+
+func (s *service) GetUserBrand(ctx context.Context, brandID, userID int) (*brand.Brand, error) {
+	brand, err := s.repository.GetUserBrand(ctx, brandID, userID)
+	if err != nil {
+		if errors.Is(err, db.ErrBrandNotFound) {
+			return nil, apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when fetching brand by id", zap.Error(err))
+
+		return nil, err
+	}
+
+	return brand, nil
+}
+
+func (s *service) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error) {
+	if err := s.repository.CheckBrandExists(ctx, data.ID, data.UserID); err != nil {
+		if errors.Is(err, db.ErrBrandNotFound) {
+			return nil, apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when check brand exists by id")
+
+		return nil, err
+	}
+
+	// TODO: brand data validation, with parameter which show create or update
+	if err := s.userService.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
+		return nil, err
+	}
+
+	stateIDs := make([]int, len(data.States))
+	for i, s := range data.States {
+		stateIDs[i] = s.ID
+	}
+
+	if err := s.stateService.CheckStatesExist(ctx, stateIDs); err != nil {
+		return nil, err
+	}
+
+	marketSectionIDs := make([]int, 0)
+	for _, ms := range data.MarketSubSections {
+		marketSectionIDs = append(marketSectionIDs, ms.ID)
+	}
+	marketSectionIDs = append(marketSectionIDs, data.MarketSection.ID)
+
+	if err := s.marketSectionService.CheckStatesExist(ctx, marketSectionIDs); err != nil {
+		return nil, err
+	}
+
+	nameIsAvailable, err := s.repository.CheckBrandNameIsAvailable(ctx, data.Name, data.ID)
+	if !nameIsAvailable {
+		if err != nil {
+			s.logger.Error("unexpected error when checking brand name availability", zap.Error(err))
+			return nil, err
+		} else {
+			return nil, ErrBrandNameAlreadyExists
+		}
+	}
+
+	updatedBrand, err := s.repository.UpdateBrand(ctx, data)
+	if err != nil {
+		s.logger.Error("unexpected error when updating brand", zap.Error(err))
+		return nil, err
+	}
+
+	return updatedBrand, nil
+}
+
+func (s *service) DeleteBrand(ctx context.Context, brandID, userID int) error {
+	if err := s.repository.CheckBrandExists(ctx, brandID, userID); err != nil {
+		if errors.Is(err, db.ErrBrandNotFound) {
+			return apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when check brand exists by id")
+
+		return err
+	}
+
+	err := s.repository.DeleteBrand(ctx, brandID, userID)
+	if err != nil {
+		s.logger.Error("unexpected error when deleting brand", zap.Error(err))
+	}
+
+	return err
 }

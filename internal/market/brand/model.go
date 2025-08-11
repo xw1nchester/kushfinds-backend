@@ -23,3 +23,9 @@ type Brand struct {
 	CreatedAt         time.Time                     `json:"createdAt"`
 	UpdatedAt         time.Time                     `json:"updatedAt"`
 }
+
+type BrandSummary struct {
+	ID                int                           `json:"id"`
+	Name              string                        `json:"name"`
+	Logo              string                        `json:"logo"`
+}

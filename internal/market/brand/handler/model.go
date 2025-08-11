@@ -59,3 +59,7 @@ func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
 type BrandResponse struct {
 	Brand brand.Brand `json:"brand"`
 }
+
+type BrandsSummaryResponse struct {
+	Brands []brand.BrandSummary `json:"brands"`
+}

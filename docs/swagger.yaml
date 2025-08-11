@@ -103,6 +103,15 @@ definitions:
       updatedAt:
         type: string
     type: object
+  brand.BrandSummary:
+    properties:
+      id:
+        type: integer
+      logo:
+        type: string
+      name:
+        type: string
+    type: object
   country.Country:
     properties:
       id:
@@ -119,14 +128,10 @@ definitions:
       email:
         type: string
       logo:
-        description: 'TODO: validate url'
         type: string
       marketSection:
         type: integer
       marketSubSectionIds:
-        description: |-
-          возможно нужно использовать dive
-          TODO: подумать как оставлять только уникальные
         items:
           type: integer
         type: array
@@ -153,6 +158,13 @@ definitions:
     properties:
       brand:
         $ref: '#/definitions/brand.Brand'
+    type: object
+  handler.BrandsSummaryResponse:
+    properties:
+      brands:
+        items:
+          $ref: '#/definitions/brand.BrandSummary'
+        type: array
     type: object
   handler.BusinessProfileRequest:
     properties:
@@ -541,32 +553,6 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - auth
-  /brands:
-    post:
-      parameters:
-      - description: request body
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handler.BrandRequest'
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.BrandResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/apperror.AppError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/apperror.AppError'
-      security:
-      - ApiKeyAuth: []
-      tags:
-      - market
   /countries:
     get:
       responses:
@@ -639,6 +625,110 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/apperror.AppError'
+      tags:
+      - market
+  /me/brands:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.BrandsSummaryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.BrandRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.BrandResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
+  /me/brands/{id}:
+    delete:
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.BrandResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
+    patch:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.BrandRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.BrandResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
       tags:
       - market
   /ping:
