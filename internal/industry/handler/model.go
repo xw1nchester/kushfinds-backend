@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/vetrovegor/kushfinds-backend/internal/industry"
+	"github.com/xw1nchester/kushfinds-backend/internal/industry"
 )
 
 type IndustriesResponse struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vetrovegor/kushfinds-backend/internal/industry"
-	"github.com/vetrovegor/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/internal/industry"
+	"github.com/xw1nchester/kushfinds-backend/internal/logging"
 	"go.uber.org/zap"
 )
 

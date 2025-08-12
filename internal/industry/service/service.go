@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/industry"
+	"github.com/xw1nchester/kushfinds-backend/internal/industry"
 	"go.uber.org/zap"
 )
 
@@ -12,8 +12,8 @@ type Repository interface {
 }
 
 type service struct {
-	repository   Repository
-	logger       *zap.Logger
+	repository Repository
+	logger     *zap.Logger
 }
 
 func New(
@@ -21,8 +21,8 @@ func New(
 	logger *zap.Logger,
 ) *service {
 	return &service{
-		repository:   repository,
-		logger:       logger,
+		repository: repository,
+		logger:     logger,
 	}
 }
 

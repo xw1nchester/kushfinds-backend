@@ -332,6 +332,8 @@ definitions:
         type: string
       firstName:
         type: string
+      hasBusinessProfile:
+        type: boolean
       id:
         type: integer
       isAdmin:

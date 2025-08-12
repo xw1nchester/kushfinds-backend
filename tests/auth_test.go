@@ -9,11 +9,11 @@ import (
 
 	"time"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth"
-	authservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service"
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
-	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth"
+	authservice "github.com/xw1nchester/kushfinds-backend/internal/auth/service"
+	"github.com/xw1nchester/kushfinds-backend/internal/user"
+	userdb "github.com/xw1nchester/kushfinds-backend/internal/user/db"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/upload"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/upload"
 	"go.uber.org/zap"
 )
 

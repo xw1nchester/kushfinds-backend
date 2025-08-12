@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/industry"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/industry"
 	"go.uber.org/zap"
 )
 
@@ -37,10 +37,10 @@ func (h *handler) Register(router chi.Router) {
 	})
 }
 
-//	@Tags		industry
-//	@Success	200		{object}	IndustriesResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/industries [get]
+// @Tags		industry
+// @Success	200		{object}	IndustriesResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/industries [get]
 func (h *handler) GetAllHandler(w http.ResponseWriter, r *http.Request) error {
 	industries, err := h.service.GetAll(r.Context())
 	if err != nil {

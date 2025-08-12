@@ -1,4 +1,4 @@
-module github.com/vetrovegor/kushfinds-backend
+module github.com/xw1nchester/kushfinds-backend
 
 go 1.24.4
 

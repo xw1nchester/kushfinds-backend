@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
-	"github.com/vetrovegor/kushfinds-backend/internal/user/db"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	"github.com/xw1nchester/kushfinds-backend/internal/user"
+	"github.com/xw1nchester/kushfinds-backend/internal/user/db"
 	"go.uber.org/zap"
 )
 
@@ -70,21 +70,22 @@ func New(
 // TODO: у db.User сделать метод ToDomain, а у user.User ToDB
 func createUserDto(data *db.User) *user.User {
 	return &user.User{
-		ID:            data.ID,
-		Email:         data.Email,
-		Username:      data.Username,
-		FirstName:     data.FirstName,
-		LastName:      data.LastName,
-		Avatar:        data.Avatar,
-		IsVerified:    data.IsVerified,
-		PasswordHash:  data.PasswordHash,
-		IsPasswordSet: data.PasswordHash != nil,
-		IsAdmin:       data.IsAdmin,
-		Age:           data.Age,
-		PhoneNumber:   data.PhoneNumber,
-		Country:       data.Country,
-		State:         data.State,
-		Region:        data.Region,
+		ID:                 data.ID,
+		Email:              data.Email,
+		Username:           data.Username,
+		FirstName:          data.FirstName,
+		LastName:           data.LastName,
+		Avatar:             data.Avatar,
+		IsVerified:         data.IsVerified,
+		PasswordHash:       data.PasswordHash,
+		IsPasswordSet:      data.PasswordHash != nil,
+		IsAdmin:            data.IsAdmin,
+		Age:                data.Age,
+		PhoneNumber:        data.PhoneNumber,
+		Country:            data.Country,
+		State:              data.State,
+		Region:             data.Region,
+		HasBusinessProfile: data.HasBusinessProfile,
 	}
 }
 

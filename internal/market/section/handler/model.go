@@ -1,7 +1,7 @@
 package handler
 
 import (
-	marketsection "github.com/vetrovegor/kushfinds-backend/internal/market/section"
+	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
 )
 
 type MarketSectionsResponse struct {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	"github.com/vetrovegor/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	"github.com/xw1nchester/kushfinds-backend/internal/logging"
 	"go.uber.org/zap"
 )
 
@@ -85,32 +85,32 @@ func (r *repository) GetAllByCountryID(ctx context.Context, countryID int) ([]st
 
 func (r *repository) CheckStatesExist(ctx context.Context, stateIDs []int) error {
 	if len(stateIDs) == 0 {
-        return nil
-    }
+		return nil
+	}
 
-    placeholders := make([]string, len(stateIDs))
-    args := make([]any, len(stateIDs))
-    for i, id := range stateIDs {
-        placeholders[i] = fmt.Sprintf("$%d", i+1)
-        args[i] = id
-    }
+	placeholders := make([]string, len(stateIDs))
+	args := make([]any, len(stateIDs))
+	for i, id := range stateIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
 
-    query := fmt.Sprintf(
-        `SELECT COUNT(id) FROM states WHERE id IN (%s)`,
-        strings.Join(placeholders, ", "),
-    )
+	query := fmt.Sprintf(
+		`SELECT COUNT(id) FROM states WHERE id IN (%s)`,
+		strings.Join(placeholders, ", "),
+	)
 
 	logging.LogSQLQuery(r.logger, query)
 
-    var count int
-    err := r.client.QueryRow(ctx, query, args...).Scan(&count)
-    if err != nil {
-        return err
-    }
+	var count int
+	err := r.client.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return err
+	}
 
-    if count != len(stateIDs) {
-        return ErrStateNotFound
-    }
+	if count != len(stateIDs) {
+		return ErrStateNotFound
+	}
 
-    return nil
+	return nil
 }

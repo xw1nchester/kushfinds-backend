@@ -7,10 +7,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	"github.com/vetrovegor/kushfinds-backend/internal/logging"
-	"github.com/vetrovegor/kushfinds-backend/internal/market/brand"
-	marketsection "github.com/vetrovegor/kushfinds-backend/internal/market/section"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	"github.com/xw1nchester/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/brand"
+	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
 	"go.uber.org/zap"
 )
 

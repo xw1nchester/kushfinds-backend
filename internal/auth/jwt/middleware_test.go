@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	mockjwt "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt/mocks"
+	mockjwt "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/mocks"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )

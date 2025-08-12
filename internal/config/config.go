@@ -11,10 +11,10 @@ import (
 type Config struct {
 	Env        string     `yaml:"env" env-default:"prod"`
 	PostgreSQL PostgreSQL `yaml:"postgresql"`
-	HTTPServer `yaml:"http_server"`
-	JWT        `yaml:"jwt"`
-	SMTP       `yaml:"smtp"`
-	Minio      `yaml:"minio"`
+	HTTPServer HTTPServer `yaml:"http_server"`
+	JWT        JWT        `yaml:"jwt"`
+	SMTP       SMTP       `yaml:"smtp"`
+	Minio      Minio      `yaml:"minio"`
 }
 
 type PostgreSQL struct {

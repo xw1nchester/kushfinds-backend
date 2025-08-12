@@ -1407,6 +1407,9 @@ const docTemplate = `{
                 "firstName": {
                     "type": "string"
                 },
+                "hasBusinessProfile": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
                 },

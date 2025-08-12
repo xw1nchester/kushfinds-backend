@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/vetrovegor/kushfinds-backend/internal/user"
+import "github.com/xw1nchester/kushfinds-backend/internal/user"
 
 type EmailRequest struct {
 	Email string `json:"email" validate:"required,email"`

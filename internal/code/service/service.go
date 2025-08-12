@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/code/db"
+	"github.com/xw1nchester/kushfinds-backend/internal/code/db"
 	"go.uber.org/zap"
 )
 

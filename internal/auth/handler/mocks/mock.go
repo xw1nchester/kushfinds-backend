@@ -13,8 +13,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	auth "github.com/vetrovegor/kushfinds-backend/internal/auth"
-	user "github.com/vetrovegor/kushfinds-backend/internal/user"
+	auth "github.com/xw1nchester/kushfinds-backend/internal/auth"
+	user "github.com/xw1nchester/kushfinds-backend/internal/user"
 	gomock "go.uber.org/mock/gomock"
 )
 

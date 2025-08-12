@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
+	"github.com/xw1nchester/kushfinds-backend/internal/config"
 )
 
 type mailManager struct {

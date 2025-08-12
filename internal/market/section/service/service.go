@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	marketsection "github.com/vetrovegor/kushfinds-backend/internal/market/section"
-	"github.com/vetrovegor/kushfinds-backend/internal/market/section/db"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/section/db"
 	"go.uber.org/zap"
 )
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vetrovegor/kushfinds-backend/internal/logging"
-	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
+	"github.com/xw1nchester/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
 

@@ -13,10 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
-	"github.com/vetrovegor/kushfinds-backend/internal/app"
-	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
-	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
+	"github.com/xw1nchester/kushfinds-backend/internal/app"
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	"github.com/xw1nchester/kushfinds-backend/internal/config"
+	pgclient "github.com/xw1nchester/kushfinds-backend/pkg/client/postgresql"
 	"go.uber.org/zap"
 )
 

@@ -6,11 +6,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	"github.com/vetrovegor/kushfinds-backend/internal/logging"
-	"github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	"github.com/xw1nchester/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
 
@@ -45,11 +45,16 @@ func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
 			s.id,
 			s.name,
 			r.id,
-			r.name
+			r.name,
+			CASE 
+				WHEN bp.user_id IS NOT NULL THEN TRUE
+				ELSE FALSE
+			END AS has_business_profile
         FROM users u
 		LEFT JOIN countries c ON u.country_id = c.id
 		LEFT JOIN states s ON u.state_id = s.id
 		LEFT JOIN regions r ON u.region_id = r.id
+		LEFT JOIN business_profiles bp ON u.id = bp.user_id
 		WHERE u.id=$1
     `
 
@@ -81,6 +86,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
 		&stateName,
 		&regionID,
 		&regionName,
+		&existingUser.HasBusinessProfile,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound

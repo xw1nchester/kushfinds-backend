@@ -7,13 +7,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	"github.com/xw1nchester/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 )
 
@@ -83,6 +83,7 @@ func (h *handler) userHandler(w http.ResponseWriter, r *http.Request) error {
 func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto ProfileRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -162,6 +163,7 @@ func (h *handler) getBusinessProfileHandler(w http.ResponseWriter, r *http.Reque
 func (h *handler) updateBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto BusinessProfileRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 

@@ -7,11 +7,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth"
-	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth"
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
 )
 
@@ -106,6 +106,7 @@ func (h *handler) clearCookie(w http.ResponseWriter) {
 func (h *handler) RegisterEmailHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -124,6 +125,7 @@ func (h *handler) RegisterEmailHandler(w http.ResponseWriter, r *http.Request) e
 func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.CodeRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -151,6 +153,7 @@ func (h *handler) registerVerifyHandler(w http.ResponseWriter, r *http.Request) 
 func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -170,6 +173,7 @@ func (h *handler) VerifyResendHandler(w http.ResponseWriter, r *http.Request) er
 func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.ProfileRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -198,6 +202,7 @@ func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request)
 func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.PasswordRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -218,6 +223,7 @@ func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request
 func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 
@@ -243,6 +249,7 @@ func (h *handler) loginEmailHandler(w http.ResponseWriter, r *http.Request) erro
 func (h *handler) loginPasswordHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto auth.EmailPasswordRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
 		return apperror.ErrDecodeBody
 	}
 

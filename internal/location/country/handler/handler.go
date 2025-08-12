@@ -8,11 +8,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	statehandler "github.com/vetrovegor/kushfinds-backend/internal/location/state/handler"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	statehandler "github.com/xw1nchester/kushfinds-backend/internal/location/state/handler"
 	"go.uber.org/zap"
 )
 
@@ -42,10 +42,10 @@ func (h *handler) Register(router chi.Router) {
 	})
 }
 
-//	@Tags		location
-//	@Success	200		{object}	ContriesResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/countries [get]
+// @Tags		location
+// @Success	200		{object}	ContriesResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/countries [get]
 func (h *handler) GetAllHandler(w http.ResponseWriter, r *http.Request) error {
 	countries, err := h.service.GetAll(r.Context())
 	if err != nil {
@@ -57,11 +57,11 @@ func (h *handler) GetAllHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-//	@Tags		location
-//	@Success	200			{object}	StatesResponse
-//	@Failure	400,500		{object}	apperror.AppError
-//	@Param		country_id	path		int	true	"Country ID"
-//	@Router		/countries/{country_id}/states [get]
+// @Tags		location
+// @Success	200			{object}	StatesResponse
+// @Failure	400,500		{object}	apperror.AppError
+// @Param		country_id	path		int	true	"Country ID"
+// @Router		/countries/{country_id}/states [get]
 func (h *handler) GetCountryStatesHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {

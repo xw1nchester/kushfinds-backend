@@ -8,10 +8,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	jwtauth "github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/market/brand"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/brand"
 	"go.uber.org/zap"
 )
 

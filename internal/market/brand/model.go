@@ -3,9 +3,9 @@ package brand
 import (
 	"time"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/location/country"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/state"
-	marketsection "github.com/vetrovegor/kushfinds-backend/internal/market/section"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
 )
 
 type Brand struct {
@@ -25,7 +25,7 @@ type Brand struct {
 }
 
 type BrandSummary struct {
-	ID                int                           `json:"id"`
-	Name              string                        `json:"name"`
-	Logo              string                        `json:"logo"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Logo string `json:"logo"`
 }

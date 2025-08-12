@@ -10,41 +10,41 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/swaggo/http-swagger/v2"
-	_ "github.com/vetrovegor/kushfinds-backend/docs"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth"
-	authdb "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
-	marketsectiondb "github.com/vetrovegor/kushfinds-backend/internal/market/section/db"
-	marketsectionservice "github.com/vetrovegor/kushfinds-backend/internal/market/section/service"
-	marketsectionhandler "github.com/vetrovegor/kushfinds-backend/internal/market/section/handler"
-	branddb "github.com/vetrovegor/kushfinds-backend/internal/market/brand/db"
-	brandservice "github.com/vetrovegor/kushfinds-backend/internal/market/brand/service"
-	brandhandler "github.com/vetrovegor/kushfinds-backend/internal/market/brand/handler"
-	authhandler "github.com/vetrovegor/kushfinds-backend/internal/auth/handler"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth/jwt"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth/password"
-	authservice "github.com/vetrovegor/kushfinds-backend/internal/auth/service"
-	codedb "github.com/vetrovegor/kushfinds-backend/internal/code/db"
-	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
-	countrydb "github.com/vetrovegor/kushfinds-backend/internal/location/country/db"
-	industrydb "github.com/vetrovegor/kushfinds-backend/internal/industry/db"
-	countryhandler "github.com/vetrovegor/kushfinds-backend/internal/location/country/handler"
-	countryservice "github.com/vetrovegor/kushfinds-backend/internal/location/country/service"
-	regiondb "github.com/vetrovegor/kushfinds-backend/internal/location/region/db"
-	regionservice "github.com/vetrovegor/kushfinds-backend/internal/location/region/service"
-	statedb "github.com/vetrovegor/kushfinds-backend/internal/location/state/db"
-	statehandler "github.com/vetrovegor/kushfinds-backend/internal/location/state/handler"
-	industryhandler "github.com/vetrovegor/kushfinds-backend/internal/industry/handler"
-	stateservice "github.com/vetrovegor/kushfinds-backend/internal/location/state/service"
-	userdb "github.com/vetrovegor/kushfinds-backend/internal/user/db"
-	userhandler "github.com/vetrovegor/kushfinds-backend/internal/user/handler"
-	uploadhandler "github.com/vetrovegor/kushfinds-backend/internal/upload/handler"
-	uploadservice "github.com/vetrovegor/kushfinds-backend/internal/upload/service"
-	industryservice "github.com/vetrovegor/kushfinds-backend/internal/industry/service"
-	userservice "github.com/vetrovegor/kushfinds-backend/internal/user/service"
-	minioclient "github.com/vetrovegor/kushfinds-backend/pkg/client/minio"
-	pgclient "github.com/vetrovegor/kushfinds-backend/pkg/client/postgresql"
-	pgtx "github.com/vetrovegor/kushfinds-backend/pkg/transactor/postgresql"
+	_ "github.com/xw1nchester/kushfinds-backend/docs"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth"
+	authdb "github.com/xw1nchester/kushfinds-backend/internal/auth/db"
+	authhandler "github.com/xw1nchester/kushfinds-backend/internal/auth/handler"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth/password"
+	authservice "github.com/xw1nchester/kushfinds-backend/internal/auth/service"
+	codedb "github.com/xw1nchester/kushfinds-backend/internal/code/db"
+	codeservice "github.com/xw1nchester/kushfinds-backend/internal/code/service"
+	"github.com/xw1nchester/kushfinds-backend/internal/config"
+	industrydb "github.com/xw1nchester/kushfinds-backend/internal/industry/db"
+	industryhandler "github.com/xw1nchester/kushfinds-backend/internal/industry/handler"
+	industryservice "github.com/xw1nchester/kushfinds-backend/internal/industry/service"
+	countrydb "github.com/xw1nchester/kushfinds-backend/internal/location/country/db"
+	countryhandler "github.com/xw1nchester/kushfinds-backend/internal/location/country/handler"
+	countryservice "github.com/xw1nchester/kushfinds-backend/internal/location/country/service"
+	regiondb "github.com/xw1nchester/kushfinds-backend/internal/location/region/db"
+	regionservice "github.com/xw1nchester/kushfinds-backend/internal/location/region/service"
+	statedb "github.com/xw1nchester/kushfinds-backend/internal/location/state/db"
+	statehandler "github.com/xw1nchester/kushfinds-backend/internal/location/state/handler"
+	stateservice "github.com/xw1nchester/kushfinds-backend/internal/location/state/service"
+	branddb "github.com/xw1nchester/kushfinds-backend/internal/market/brand/db"
+	brandhandler "github.com/xw1nchester/kushfinds-backend/internal/market/brand/handler"
+	brandservice "github.com/xw1nchester/kushfinds-backend/internal/market/brand/service"
+	marketsectiondb "github.com/xw1nchester/kushfinds-backend/internal/market/section/db"
+	marketsectionhandler "github.com/xw1nchester/kushfinds-backend/internal/market/section/handler"
+	marketsectionservice "github.com/xw1nchester/kushfinds-backend/internal/market/section/service"
+	uploadhandler "github.com/xw1nchester/kushfinds-backend/internal/upload/handler"
+	uploadservice "github.com/xw1nchester/kushfinds-backend/internal/upload/service"
+	userdb "github.com/xw1nchester/kushfinds-backend/internal/user/db"
+	userhandler "github.com/xw1nchester/kushfinds-backend/internal/user/handler"
+	userservice "github.com/xw1nchester/kushfinds-backend/internal/user/service"
+	minioclient "github.com/xw1nchester/kushfinds-backend/pkg/client/minio"
+	pgclient "github.com/xw1nchester/kushfinds-backend/pkg/client/postgresql"
+	pgtx "github.com/xw1nchester/kushfinds-backend/pkg/transactor/postgresql"
 	"go.uber.org/zap"
 )
 
@@ -69,10 +69,10 @@ func New(log *zap.Logger, cfg config.Config) *App {
 	}
 
 	minioClient, err := minioclient.New(minioclient.Config{
-		Endpoint: cfg.Minio.Endpoint,
-		AccessKeyID: cfg.Minio.AccessKeyID,
+		Endpoint:        cfg.Minio.Endpoint,
+		AccessKeyID:     cfg.Minio.AccessKeyID,
 		SecretAccessKey: cfg.Minio.SecretAccessKey,
-		UseSSL: cfg.Minio.UseSSL,
+		UseSSL:          cfg.Minio.UseSSL,
 	})
 	if err != nil {
 		log.Fatal(err.Error())
@@ -83,10 +83,10 @@ func New(log *zap.Logger, cfg config.Config) *App {
 	router.Use(
 		LoggingMiddleware(log),
 		cors.Handler(cors.Options{
-			AllowedOrigins:   cfg.AllowedOrigins,
-			AllowCredentials: cfg.AllowCredentials,
-			AllowedMethods:   cfg.AllowedMethods,
-			AllowedHeaders:   cfg.AllowedHeaders,
+			AllowedOrigins:   cfg.HTTPServer.AllowedOrigins,
+			AllowCredentials: cfg.HTTPServer.AllowCredentials,
+			AllowedMethods:   cfg.HTTPServer.AllowedMethods,
+			AllowedHeaders:   cfg.HTTPServer.AllowedHeaders,
 		}),
 		middleware.Recoverer,
 	)
@@ -210,8 +210,8 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		marketSectionHandler.Register(r)
 
 		brandHandler := brandhandler.New(
-			brandService, 
-			authMiddleware, 
+			brandService,
+			authMiddleware,
 			log,
 		)
 
@@ -221,7 +221,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 	})
 
 	srv := &http.Server{
-		Addr:         cfg.Address,
+		Addr:         cfg.HTTPServer.Address,
 		Handler:      router,
 		ReadTimeout:  cfg.HTTPServer.Timeout,
 		WriteTimeout: cfg.HTTPServer.Timeout,

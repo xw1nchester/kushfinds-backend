@@ -7,12 +7,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vetrovegor/kushfinds-backend/internal/app"
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
+	"github.com/xw1nchester/kushfinds-backend/internal/app"
+	"github.com/xw1nchester/kushfinds-backend/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	_ "github.com/vetrovegor/kushfinds-backend/docs"
+	_ "github.com/xw1nchester/kushfinds-backend/docs"
 )
 
 //	@title			Kushfinds API
@@ -38,7 +38,7 @@ func main() {
 		app.MustRun()
 	}()
 
-	log.Info("server started", zap.String("addr", cfg.Address))
+	log.Info("server started", zap.String("addr", cfg.HTTPServer.Address))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)

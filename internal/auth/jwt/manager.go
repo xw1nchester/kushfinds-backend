@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/vetrovegor/kushfinds-backend/internal/config"
+	"github.com/xw1nchester/kushfinds-backend/internal/config"
 )
 
 type manager struct {

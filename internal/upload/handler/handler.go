@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/upload"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/upload"
 	"go.uber.org/zap"
 )
 
@@ -48,13 +48,13 @@ func (h *handler) Register(router chi.Router) {
 	router.Get("/static/{filename}", apperror.Middleware(h.getFileHandler))
 }
 
-//	@Security	ApiKeyAuth
-//	@Tags		upload
-//	@Accept		multipart/form-data
-//	@Param		file	formData	file	true	"form data"
-//	@Success	200		{object}	FileResponse
-//	@Failure	400,500	{object}	apperror.AppError
-//	@Router		/upload [post]
+// @Security	ApiKeyAuth
+// @Tags		upload
+// @Accept		multipart/form-data
+// @Param		file	formData	file	true	"form data"
+// @Success	200		{object}	FileResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/upload [post]
 func (h *handler) uploadHandler(w http.ResponseWriter, r *http.Request) error {
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -79,12 +79,12 @@ func (h *handler) uploadHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-//	@Tags		upload
-//	@Produce	application/octet-stream
-//	@Param		filename	path	string	true	"file name"
-//	@Success	200
-//	@Failure	400,404,500	{object}	apperror.AppError
-//	@Router		/static/{filename} [get]
+// @Tags		upload
+// @Produce	application/octet-stream
+// @Param		filename	path	string	true	"file name"
+// @Success	200
+// @Failure	400,404,500	{object}	apperror.AppError
+// @Router		/static/{filename} [get]
 func (h *handler) getFileHandler(w http.ResponseWriter, r *http.Request) error {
 	dto, err := h.service.GetFile(r.Context(), chi.URLParam(r, "filename"))
 	if err != nil {

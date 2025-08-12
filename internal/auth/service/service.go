@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/auth"
-	authDB "github.com/vetrovegor/kushfinds-backend/internal/auth/db"
-	codeservice "github.com/vetrovegor/kushfinds-backend/internal/code/service"
-	"github.com/vetrovegor/kushfinds-backend/internal/user"
-	"github.com/vetrovegor/kushfinds-backend/pkg/transactor"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/auth"
+	authDB "github.com/xw1nchester/kushfinds-backend/internal/auth/db"
+	codeservice "github.com/xw1nchester/kushfinds-backend/internal/code/service"
+	"github.com/xw1nchester/kushfinds-backend/internal/user"
+	"github.com/xw1nchester/kushfinds-backend/pkg/transactor"
 	"go.uber.org/zap"
 )
 

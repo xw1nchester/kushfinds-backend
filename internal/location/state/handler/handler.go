@@ -8,10 +8,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/vetrovegor/kushfinds-backend/internal/apperror"
-	"github.com/vetrovegor/kushfinds-backend/internal/handlers"
-	"github.com/vetrovegor/kushfinds-backend/internal/location/region"
-	regionhandler "github.com/vetrovegor/kushfinds-backend/internal/location/region/handler"
+	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
+	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
+	regionhandler "github.com/xw1nchester/kushfinds-backend/internal/location/region/handler"
 	"go.uber.org/zap"
 )
 
@@ -39,11 +39,11 @@ func (h *handler) Register(router chi.Router) {
 	})
 }
 
-//	@Tags		location
-//	@Success	200			{object}	RegionsResponse
-//	@Failure	400,500		{object}	apperror.AppError
-//	@Param		state_id	path		int	true	"State ID"
-//	@Router		/states/{state_id}/regions [get]
+// @Tags		location
+// @Success	200			{object}	RegionsResponse
+// @Failure	400,500		{object}	apperror.AppError
+// @Param		state_id	path		int	true	"State ID"
+// @Router		/states/{state_id}/regions [get]
 func (h *handler) GetStateRegionsHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {

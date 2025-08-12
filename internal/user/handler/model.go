@@ -1,6 +1,6 @@
 package handler
 
-import "github.com/vetrovegor/kushfinds-backend/pkg/types"
+import "github.com/xw1nchester/kushfinds-backend/pkg/types"
 
 type ProfileRequest struct {
 	FirstName   *string            `json:"firstName" validate:"omitempty,min=3,max=30"`
