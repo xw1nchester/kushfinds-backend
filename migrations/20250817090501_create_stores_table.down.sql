@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS store_pictures;
+
+DROP TABLE IF EXISTS stores;
+
+DROP TABLE IF EXISTS store_types;

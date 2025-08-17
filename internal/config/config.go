@@ -33,6 +33,7 @@ type HTTPServer struct {
 	AllowCredentials bool          `yaml:"allow_credentials"`
 	AllowedMethods   []string      `yaml:"allowed_methods" env-default:"*"`
 	AllowedHeaders   []string      `yaml:"allowed_headers" env-default:"*"`
+	StaticURL        string        `yaml:"static_url" env-required:"true"`
 }
 
 type JWT struct {

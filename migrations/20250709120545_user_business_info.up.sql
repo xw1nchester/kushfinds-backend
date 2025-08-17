@@ -23,12 +23,12 @@ CREATE TABLE IF NOT EXISTS business_industries (
 );
 
 ALTER TABLE users
-    ADD COLUMN is_admin BOOLEAN DEFAULT false NOT NULL,
-    ADD COLUMN country_id INTEGER,
-    ADD COLUMN state_id INTEGER,
-    ADD COLUMN region_id INTEGER,
-    ADD COLUMN age INTEGER,
-    ADD COLUMN phone_number TEXT;
+    ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS country_id INTEGER,
+    ADD COLUMN IF NOT EXISTS state_id INTEGER,
+    ADD COLUMN IF NOT EXISTS region_id INTEGER,
+    ADD COLUMN IF NOT EXISTS age INTEGER,
+    ADD COLUMN IF NOT EXISTS phone_number TEXT;
 
 ALTER TABLE users ADD CONSTRAINT fk_country_id FOREIGN KEY (country_id) REFERENCES countries(id);
 ALTER TABLE users ADD CONSTRAINT fk_state_id FOREIGN KEY (state_id) REFERENCES states(id);

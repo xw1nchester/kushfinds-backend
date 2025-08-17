@@ -23,6 +23,7 @@ http_server:
   allowed_headers:
     - Authorization
     - Content-Type
+  static_url: http://localhost:8080/api/static
 jwt:
   secret: $3cr3t
   access_token_ttl: 5m

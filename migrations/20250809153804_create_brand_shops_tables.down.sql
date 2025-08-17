@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS brands_states;
 
-DROP TABLE IF EXISTS brands_market_sections;
+DROP TABLE IF EXISTS brands_market_sub_sections;
 
 DROP TABLE IF EXISTS brands;
 

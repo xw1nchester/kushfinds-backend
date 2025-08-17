@@ -212,6 +212,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		brandHandler := brandhandler.New(
 			brandService,
 			authMiddleware,
+			cfg.HTTPServer.StaticURL,
 			log,
 		)
 

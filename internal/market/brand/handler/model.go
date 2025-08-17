@@ -17,8 +17,8 @@ type BrandRequest struct {
 	Name                string              `json:"name" validate:"required"`
 	Email               string              `json:"email" validate:"required,email"`
 	PhoneNumber         string              `json:"phoneNumber" validate:"required"`
-	Logo                string              `json:"logo" validate:"required,url"`
-	Banner              string              `json:"banner" validate:"required,url"`
+	Logo                string              `json:"logo" validate:"required"`
+	Banner              string              `json:"banner" validate:"required"`
 }
 
 func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
@@ -60,6 +60,19 @@ type BrandResponse struct {
 	Brand brand.Brand `json:"brand"`
 }
 
+func NewBrandResponse(b brand.Brand, staticURL string) BrandResponse {
+	b.Logo = staticURL + "/" + b.Logo
+	b.Banner = staticURL + "/" + b.Banner
+	return BrandResponse{Brand: b}
+}
+
 type BrandsSummaryResponse struct {
 	Brands []brand.BrandSummary `json:"brands"`
+}
+
+func NewBrandsSummaryResponse(bs []brand.BrandSummary, staticURL string) BrandsSummaryResponse {
+	for i := range bs {
+		bs[i].Logo = staticURL + "/" + bs[i].Logo
+	}
+	return BrandsSummaryResponse{Brands: bs}
 }
