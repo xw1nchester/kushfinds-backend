@@ -1,14 +1,21 @@
+MIGRATIONS_DIR=./migrations
+DB_URL=postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable
+
+# make migration name=create_users_table
+migrate.create:
+	migrate create -ext sql -dir $(MIGRATIONS_DIR) $(name)
+	
 migrate.up:
-	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" up
+	migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) up
 
 migrate.up.%:
-	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" up $*
+	migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) up $*
 
 migrate.down:
-	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" down
+	migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) down
 
 migrate.down.%:
-	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/kushfinds?sslmode=disable" down $*
+	migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) down $*
 	
 dev:
 	export CONFIG_PATH=config/local.yml && air

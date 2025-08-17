@@ -37,6 +37,9 @@ import (
 	marketsectiondb "github.com/xw1nchester/kushfinds-backend/internal/market/section/db"
 	marketsectionhandler "github.com/xw1nchester/kushfinds-backend/internal/market/section/handler"
 	marketsectionservice "github.com/xw1nchester/kushfinds-backend/internal/market/section/service"
+	storedb "github.com/xw1nchester/kushfinds-backend/internal/market/store/db"
+	storehandler "github.com/xw1nchester/kushfinds-backend/internal/market/store/handler"
+	storeservice "github.com/xw1nchester/kushfinds-backend/internal/market/store/service"
 	uploadhandler "github.com/xw1nchester/kushfinds-backend/internal/upload/handler"
 	uploadservice "github.com/xw1nchester/kushfinds-backend/internal/upload/service"
 	userdb "github.com/xw1nchester/kushfinds-backend/internal/user/db"
@@ -165,6 +168,10 @@ func New(log *zap.Logger, cfg config.Config) *App {
 			log,
 		)
 
+		storeRepository := storedb.New(pgClient, log)
+		
+		storeService := storeservice.New(storeRepository, log)
+
 		authHandler := authhandler.New(authService, authMiddleware, log)
 
 		log.Info("register auth handlers")
@@ -219,6 +226,12 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		log.Info("register brand handlers")
 
 		brandHandler.Register(r)
+
+		storeHandler := storehandler.New(storeService, log)
+
+		log.Info("register store handlers")
+
+		storeHandler.Register(r)
 	})
 
 	srv := &http.Server{
