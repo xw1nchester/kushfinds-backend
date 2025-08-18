@@ -118,6 +118,8 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 		WHERE b.id=$1 AND b.user_id=$2
 	`
 
+	logging.LogSQLQuery(r.logger, query)
+
 	var br brand.Brand
 	if err := r.client.QueryRow(ctx, query, brandID, userID).Scan(
 		&br.ID,
@@ -146,6 +148,9 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 		JOIN states s ON bs.state_id = s.id
 		WHERE bs.brand_id = $1
 	`
+
+	logging.LogSQLQuery(r.logger, statesQuery)
+
 	rows, err := r.client.Query(ctx, statesQuery, brandID)
 	if err != nil {
 		return nil, err
@@ -170,6 +175,9 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 		JOIN market_sections ms ON bmss.market_section_id = ms.id
 		WHERE bmss.brand_id = $1
 	`
+
+	logging.LogSQLQuery(r.logger, mssQuery)
+
 	rows, err = r.client.Query(ctx, mssQuery, brandID)
 	if err != nil {
 		return nil, err
@@ -191,6 +199,7 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 	return &br, nil
 }
 
+// TODO: вынести создание связанных штатов, секций
 func (r *repository) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error) {
 	tx, err := r.client.Begin(ctx)
 	if err != nil {
@@ -204,6 +213,7 @@ func (r *repository) CreateBrand(ctx context.Context, data brand.Brand) (*brand.
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id
     `
+
 	logging.LogSQLQuery(r.logger, query)
 
 	var brandID int

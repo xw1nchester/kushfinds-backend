@@ -68,15 +68,22 @@ func New(
 	}
 }
 
+func (s *service) CheckBrandExists(ctx context.Context, brandID, userID int) error {
+	err := s.repository.CheckBrandExists(ctx, brandID, userID)
+	if err != nil {
+		if errors.Is(err, db.ErrBrandNotFound) {
+			return apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when check brand exists by id", zap.Error(err))
+	}
+
+	return err
+}
+
 func (s *service) validateBrandData(ctx context.Context, data brand.Brand, isUpdate bool) error {
 	if isUpdate {
-		if err := s.repository.CheckBrandExists(ctx, data.ID, data.UserID); err != nil {
-			if errors.Is(err, db.ErrBrandNotFound) {
-				return apperror.ErrNotFound
-			}
-
-			s.logger.Error("unexpected error when check brand exists by id", zap.Error(err))
-
+		if err := s.CheckBrandExists(ctx, data.ID, data.UserID); err != nil {
 			return err
 		}
 	}
@@ -186,13 +193,7 @@ func (s *service) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.Bra
 }
 
 func (s *service) DeleteBrand(ctx context.Context, brandID, userID int) error {
-	if err := s.repository.CheckBrandExists(ctx, brandID, userID); err != nil {
-		if errors.Is(err, db.ErrBrandNotFound) {
-			return apperror.ErrNotFound
-		}
-
-		s.logger.Error("unexpected error when check brand exists by id", zap.Error(err))
-
+	if err := s.CheckBrandExists(ctx, brandID, userID); err != nil {
 		return err
 	}
 

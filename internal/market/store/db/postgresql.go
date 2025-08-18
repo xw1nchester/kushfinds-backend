@@ -76,3 +76,112 @@ func (r *repository) GetStoreTypeByID(ctx context.Context, id int) (*store.Store
 
 	return &storeType, nil
 }
+
+func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, error) {
+	query := `
+		SELECT
+			s.id,
+			b.id,
+			b.name,
+			b.logo,
+			s.name,
+			s.description,
+			c.id,
+			c.name,
+			st.id,
+			st.name,
+			r.id,
+			r.name,
+			s.street,
+			s.house,
+			s.post_code,
+			s.email,
+			s.phone_number,
+			t.id,
+			t.name,
+			s.delivery_price,
+			s.minimal_order_price,
+			s.delivery_distance,
+			s.is_published
+		FROM stores s
+		LEFT JOIN brands b ON s.brand_id = b.id
+		LEFT JOIN countries c ON s.country_id = c.id
+		LEFT JOIN states st ON s.state_id = st.id
+		LEFT JOIN regions r ON s.region_id = r.id
+		LEFT JOIN store_types t ON s.store_type_id = t.id
+		WHERE s.id=$1
+	`
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var store store.Store
+	if err := r.client.QueryRow(ctx, query, id).Scan(
+		&store.ID,
+		&store.Brand.ID,
+		&store.Brand.Name,
+		&store.Brand.Logo,
+		&store.Name,
+		&store.Description,
+		&store.Country.ID,
+		&store.Country.Name,
+		&store.State.ID,
+		&store.State.Name,
+		&store.Region.ID,
+		&store.Region.Name,
+		&store.Street,
+		&store.House,
+		&store.PostCode,
+		&store.Email,
+		&store.PhoneNumber,
+		&store.StoreType.ID,
+		&store.StoreType.Name,
+		&store.DeliveryPrice,
+		&store.MinimalOrderPrice,
+		&store.DeliveryDistance,
+		&store.IsPublished,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrStoreNotFound
+		}
+		return nil, err
+	}
+
+	return &store, nil
+}
+
+// TODO: create pictures (сразу вынести)
+func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.Store, error) {
+	query := `
+        INSERT INTO stores (brand_id, name, banner, description, country_id, state_id, region_id, street, house, post_code, email, phone_number, store_type_id, delivery_price, minimal_order_price, delivery_distance)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        RETURNING id
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var id int
+	if err := r.client.QueryRow(
+		ctx,
+		query,
+		data.Brand.ID,
+		data.Name,
+		data.Banner,
+		data.Description,
+		data.Country.ID,
+		data.State.ID,
+		data.Region.ID,
+		data.Street,
+		data.House,
+		data.PostCode,
+		data.Email,
+		data.PhoneNumber,
+		data.StoreType.ID,
+		data.DeliveryPrice,
+		data.MinimalOrderPrice,
+		data.DeliveryDistance,
+	).Scan(&id); err != nil {
+		return nil, err
+	}
+
+	return r.GetStoreByID(ctx, id)
+}

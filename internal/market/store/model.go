@@ -14,6 +14,7 @@ type StoreType struct {
 
 type Store struct {
 	ID                int                `json:"id"`
+	UserID            int                `json:"-"`
 	Brand             brand.BrandSummary `json:"brand"`
 	Name              string             `json:"name"`
 	Banner            string             `json:"banner"`
@@ -30,5 +31,6 @@ type Store struct {
 	DeliveryPrice     int                `json:"deliveryPrice"`
 	MinimalOrderPrice int                `json:"minimalOrderPrice"`
 	DeliveryDistance  int                `json:"deliveryDistance"`
-	IsPublished       string             `json:"isPublished"`
+	Pictures          []string           `json:"pictures"`
+	IsPublished       bool               `json:"isPublished"`
 }

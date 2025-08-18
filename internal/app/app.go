@@ -169,8 +169,16 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		)
 
 		storeRepository := storedb.New(pgClient, log)
-		
-		storeService := storeservice.New(storeRepository, log)
+
+		storeService := storeservice.New(
+			storeRepository,
+			userService,
+			brandService,
+			countryService,
+			stateService,
+			regionService,
+			log,
+		)
 
 		authHandler := authhandler.New(authService, authMiddleware, log)
 
@@ -227,7 +235,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		brandHandler.Register(r)
 
-		storeHandler := storehandler.New(storeService, log)
+		storeHandler := storehandler.New(storeService, authMiddleware, log)
 
 		log.Info("register store handlers")
 

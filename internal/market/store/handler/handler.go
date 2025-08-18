@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/store"
 	"go.uber.org/zap"
@@ -17,23 +18,36 @@ var validate = validator.New()
 
 type Service interface {
 	GetAllStoreTypes(ctx context.Context) ([]store.StoreType, error)
+
+	CreateStore(ctx context.Context, data store.Store) (*store.Store, error)
 }
 
 type handler struct {
-	service Service
-	logger  *zap.Logger
+	service        Service
+	authMiddleware func(http.Handler) http.Handler
+	logger         *zap.Logger
 }
 
-func New(service Service, logger *zap.Logger) handlers.Handler {
+func New(
+	service Service,
+	authMiddleware func(http.Handler) http.Handler,
+	logger *zap.Logger,
+) handlers.Handler {
 	return &handler{
-		service: service,
-		logger:  logger,
+		service:        service,
+		authMiddleware: authMiddleware,
+		logger:         logger,
 	}
 }
 
 func (h *handler) Register(router chi.Router) {
 	router.Route("/store/types", func(storeTypeRouter chi.Router) {
 		storeTypeRouter.Get("/", apperror.Middleware(h.GetAllStoreTypes))
+	})
+
+	router.Route("/me/stores", func(privateStoreHandler chi.Router) {
+		privateStoreHandler.Use(h.authMiddleware)
+		privateStoreHandler.Post("/", apperror.Middleware(h.createStoreHandler))
 	})
 
 	// router.Route("/me/brands", func(privateBrandRouter chi.Router) {
@@ -53,6 +67,29 @@ func (h *handler) GetAllStoreTypes(w http.ResponseWriter, r *http.Request) error
 	}
 
 	render.JSON(w, r, StoreTypesResponse{StoreTypes: storeTypes})
+
+	return nil
+}
+
+func (h *handler) createStoreHandler(w http.ResponseWriter, r *http.Request) error {
+	var dto StoreRequest
+	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
+		return apperror.ErrDecodeBody
+	}
+
+	if err := validate.Struct(dto); err != nil {
+		return apperror.NewValidationErr(err.(validator.ValidationErrors))
+	}
+
+	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+
+	createdStore, err := h.service.CreateStore(r.Context(), *dto.ToDomain(userID))
+	if err != nil {
+		return err
+	}
+
+	render.JSON(w, r, StoreResponse{Store: *createdStore})
 
 	return nil
 }

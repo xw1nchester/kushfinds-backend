@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS stores (
     delivery_price INTEGER,
     minimal_order_price INTEGER,
     delivery_distance INTEGER,
-    is_published BOOLEAN,
+    is_published BOOLEAN DEFAULT false NOT NULL,
     FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE,
     FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE CASCADE,
     FOREIGN KEY (state_id) REFERENCES states(id) ON DELETE CASCADE,
