@@ -84,6 +84,7 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 			b.id,
 			b.name,
 			b.logo,
+			s.banner,
 			s.name,
 			s.description,
 			c.id,
@@ -120,6 +121,7 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 		&store.Brand.ID,
 		&store.Brand.Name,
 		&store.Brand.Logo,
+		&store.Banner,
 		&store.Name,
 		&store.Description,
 		&store.Country.ID,
@@ -146,11 +148,56 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 		return nil, err
 	}
 
+	picsQuery := `
+		SELECT url
+		FROM stores_pictures
+		WHERE store_id = $1
+	`
+
+	logging.LogSQLQuery(r.logger, picsQuery)
+
+	rows, err := r.client.Query(ctx, picsQuery, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	store.Pictures = make([]string, 0)
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		store.Pictures = append(store.Pictures, url)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &store, nil
 }
 
-// TODO: create pictures (сразу вынести)
+func (r *repository) createStorePictures(ctx context.Context, tx pgx.Tx, storeID int, pictures []string) error {
+	query := `
+		INSERT INTO stores_pictures (store_id, url)
+		VALUES ($1, $2)
+	`
+	batch := &pgx.Batch{}
+	for _, url := range pictures {
+		logging.LogSQLQuery(r.logger, query)
+		batch.Queue(query, storeID, url)
+	}
+	br := tx.SendBatch(ctx, batch)
+	return br.Close()
+}
+
 func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.Store, error) {
+	tx, err := r.client.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
         INSERT INTO stores (brand_id, name, banner, description, country_id, state_id, region_id, street, house, post_code, email, phone_number, store_type_id, delivery_price, minimal_order_price, delivery_distance)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
@@ -160,7 +207,7 @@ func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.
 	logging.LogSQLQuery(r.logger, query)
 
 	var id int
-	if err := r.client.QueryRow(
+	if err = tx.QueryRow(
 		ctx,
 		query,
 		data.Brand.ID,
@@ -180,6 +227,16 @@ func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.
 		data.MinimalOrderPrice,
 		data.DeliveryDistance,
 	).Scan(&id); err != nil {
+		return nil, err
+	}
+
+	if len(data.Pictures) > 0 {
+		if err = r.createStorePictures(ctx, tx, id, data.Pictures); err != nil {
+			return nil, err
+		}
+	}
+
+	if err = tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 

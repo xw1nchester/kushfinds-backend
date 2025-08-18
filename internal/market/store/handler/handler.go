@@ -25,17 +25,20 @@ type Service interface {
 type handler struct {
 	service        Service
 	authMiddleware func(http.Handler) http.Handler
+	staticURL      string
 	logger         *zap.Logger
 }
 
 func New(
 	service Service,
 	authMiddleware func(http.Handler) http.Handler,
+	staticURL string,
 	logger *zap.Logger,
 ) handlers.Handler {
 	return &handler{
 		service:        service,
 		authMiddleware: authMiddleware,
+		staticURL:      staticURL,
 		logger:         logger,
 	}
 }
@@ -89,7 +92,7 @@ func (h *handler) createStoreHandler(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	render.JSON(w, r, StoreResponse{Store: *createdStore})
+	render.JSON(w, r, NewStoreResponse(*createdStore, h.staticURL))
 
 	return nil
 }

@@ -16,7 +16,7 @@ type StoreTypesResponse struct {
 type StoreRequest struct {
 	BrandID           types.IntOrString `json:"brandId" validate:"required"`
 	Name              string            `json:"name" validate:"required"`
-	Banner            string            `json:"Banner" validate:"required"`
+	Banner            string            `json:"banner" validate:"required"`
 	Description       string            `json:"Description" validate:"required"`
 	CountryID         types.IntOrString `json:"countryId" validate:"required"`
 	StateID           types.IntOrString `json:"stateId" validate:"required"`
@@ -58,4 +58,12 @@ func (sr *StoreRequest) ToDomain(userID int) *store.Store {
 
 type StoreResponse struct {
 	Store store.Store `json:"store"`
+}
+
+func NewStoreResponse(s store.Store, staticURL string) StoreResponse {
+	s.Banner = staticURL + "/" + s.Banner
+	for i := range s.Pictures {
+		s.Pictures[i] = staticURL + "/" + s.Pictures[i]
+	}
+	return StoreResponse{Store: s}
 }

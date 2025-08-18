@@ -235,7 +235,12 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		brandHandler.Register(r)
 
-		storeHandler := storehandler.New(storeService, authMiddleware, log)
+		storeHandler := storehandler.New(
+			storeService, 
+			authMiddleware, 
+			cfg.HTTPServer.StaticURL,
+			log,
+		)
 
 		log.Info("register store handlers")
 

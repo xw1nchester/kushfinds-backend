@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS stores (
     FOREIGN KEY (store_type_id) REFERENCES store_types(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS store_pictures (
+CREATE TABLE IF NOT EXISTS stores_pictures (
     store_id INTEGER REFERENCES stores(id) ON DELETE CASCADE,
     url TEXT NOT NULL,
     PRIMARY KEY (store_id, url)
