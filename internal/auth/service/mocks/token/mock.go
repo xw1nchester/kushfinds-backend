@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,18 +42,18 @@ func (m *MockTokenManager) EXPECT() *MockTokenManagerMockRecorder {
 }
 
 // GenerateToken mocks base method.
-func (m *MockTokenManager) GenerateToken(userID int) (string, error) {
+func (m *MockTokenManager) GenerateToken(user jwtauth.UserClaims) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateToken", userID)
+	ret := m.ctrl.Call(m, "GenerateToken", user)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateToken indicates an expected call of GenerateToken.
-func (mr *MockTokenManagerMockRecorder) GenerateToken(userID any) *gomock.Call {
+func (mr *MockTokenManagerMockRecorder) GenerateToken(user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockTokenManager)(nil).GenerateToken), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockTokenManager)(nil).GenerateToken), user)
 }
 
 // GetRefreshTokenTTL mocks base method.

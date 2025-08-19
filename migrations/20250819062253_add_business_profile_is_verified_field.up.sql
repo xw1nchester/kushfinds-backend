@@ -1,0 +1,2 @@
+ALTER TABLE business_profiles
+  ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false NOT NULL;

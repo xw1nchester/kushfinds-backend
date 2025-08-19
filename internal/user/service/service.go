@@ -23,6 +23,7 @@ type Repository interface {
 	Create(ctx context.Context, email string) (int, error)
 	Verify(ctx context.Context, id int) (*db.User, error)
 	CheckUsernameIsAvailable(ctx context.Context, username string) (bool, error)
+	IsAdmin(ctx context.Context, userID int) (bool, error)
 	SetProfileInfo(ctx context.Context, user db.User) (*db.User, error)
 	SetPassword(ctx context.Context, id int, passwordHash []byte) error
 	UpdateProfile(ctx context.Context, user db.User) (*db.User, error)
@@ -271,18 +272,25 @@ func (s *service) GetUserBusinessProfile(ctx context.Context, userID int) (*user
 	return businessProfile.ToDomain(), nil
 }
 
-func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessProfile) (*user.BusinessProfile, error) {
+func (s *service) validateBusinessProfileData(ctx context.Context, data user.BusinessProfile) error {
 	// TODO: check business industry id
-
 	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
-		return nil, err
+		return err
 	}
 
 	if _, err := s.stateService.GetByID(ctx, data.State.ID); err != nil {
-		return nil, err
+		return err
 	}
 
 	if _, err := s.regionService.GetByID(ctx, data.Region.ID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessProfile) (*user.BusinessProfile, error) {
+	if err := s.validateBusinessProfileData(ctx, data); err != nil {
 		return nil, err
 	}
 
@@ -305,6 +313,7 @@ func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessP
 			},
 			Email:       data.Email,
 			PhoneNumber: data.PhoneNumber,
+			IsVerified:  false,
 		},
 	)
 	if err != nil {
@@ -328,4 +337,62 @@ func (s *service) CheckBusinessProfileExists(ctx context.Context, userID int) er
 	}
 
 	return nil
+}
+
+func (s *service) AdminUpdateBusinessProfile(
+	ctx context.Context,
+	adminID int,
+	data user.BusinessProfile,
+) (*user.BusinessProfile, error) {
+	// TODO: подумать как лучше работать с is_admin в токене
+	isAdmin, err := s.repository.IsAdmin(ctx, adminID)
+	if err != nil {
+		if errors.Is(err, db.ErrUserNotFound) {
+			return nil, apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when user is admin checking", zap.Error(err))
+
+		return nil, err
+	}
+	if !isAdmin {
+		return nil, apperror.ErrForbidden
+	}
+
+	if err := s.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateBusinessProfileData(ctx, data); err != nil {
+		return nil, err
+	}
+
+	businessProfile, err := s.repository.UpdateBusinessProfile(
+		ctx,
+		db.BusinessProfile{
+			UserID: data.UserID,
+			BusinessIndustry: db.BusinessIndustry{
+				ID: data.BusinessIndustry.ID,
+			},
+			BusinessName: data.BusinessName,
+			Country: country.Country{
+				ID: data.Country.ID,
+			},
+			State: state.State{
+				ID: data.State.ID,
+			},
+			Region: region.Region{
+				ID: data.Region.ID,
+			},
+			Email:       data.Email,
+			PhoneNumber: data.PhoneNumber,
+			IsVerified:  data.IsVerified,
+		},
+	)
+	if err != nil {
+		s.logger.Error("unexpected error when updating business profile", zap.Error(err))
+		return nil, err
+	}
+
+	return businessProfile.ToDomain(), nil
 }

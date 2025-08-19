@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
-	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	jwtmiddleware "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/middleware"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/store"
 	"go.uber.org/zap"
@@ -52,17 +52,13 @@ func (h *handler) Register(router chi.Router) {
 		privateStoreHandler.Use(h.authMiddleware)
 		privateStoreHandler.Post("/", apperror.Middleware(h.createStoreHandler))
 	})
-
-	// router.Route("/me/brands", func(privateBrandRouter chi.Router) {
-	// 	privateBrandRouter.Use(h.authMiddleware)
-	// 	privateBrandRouter.Post("/", apperror.Middleware(h.createBrandHandler))
-	// 	privateBrandRouter.Get("/", apperror.Middleware(h.getUserBrandsHandler))
-	// 	privateBrandRouter.Get("/{id}", apperror.Middleware(h.getUserBrandHandler))
-	// 	privateBrandRouter.Patch("/{id}", apperror.Middleware(h.updateBrandHandler))
-	// 	privateBrandRouter.Delete("/{id}", apperror.Middleware(h.deleteBrandHandler))
-	// })
 }
 
+// @Security	ApiKeyAuth
+// @Tags		market
+// @Success	200		{object}	StoreTypesResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/store/types [get]
 func (h *handler) GetAllStoreTypes(w http.ResponseWriter, r *http.Request) error {
 	storeTypes, err := h.service.GetAllStoreTypes(r.Context())
 	if err != nil {
@@ -74,6 +70,12 @@ func (h *handler) GetAllStoreTypes(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
+// @Security	ApiKeyAuth
+// @Tags		market
+// @Param		request	body		StoreRequest	true	"request body"
+// @Success	200		{object}	StoreResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/me/stores [post]
 func (h *handler) createStoreHandler(w http.ResponseWriter, r *http.Request) error {
 	var dto StoreRequest
 	if err := render.DecodeJSON(r.Body, &dto); err != nil {
@@ -85,7 +87,7 @@ func (h *handler) createStoreHandler(w http.ResponseWriter, r *http.Request) err
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	createdStore, err := h.service.CreateStore(r.Context(), *dto.ToDomain(userID))
 	if err != nil {

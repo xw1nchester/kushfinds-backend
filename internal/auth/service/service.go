@@ -10,6 +10,7 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
 	"github.com/xw1nchester/kushfinds-backend/internal/auth"
 	authDB "github.com/xw1nchester/kushfinds-backend/internal/auth/db"
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
 	codeservice "github.com/xw1nchester/kushfinds-backend/internal/code/service"
 	"github.com/xw1nchester/kushfinds-backend/internal/user"
 	"github.com/xw1nchester/kushfinds-backend/pkg/transactor"
@@ -59,7 +60,7 @@ type MailManager interface {
 
 //go:generate mockgen -destination=mocks/token/mock.go -package=mocktoken . TokenManager
 type TokenManager interface {
-	GenerateToken(userID int) (string, error)
+	GenerateToken(user jwtauth.UserClaims) (string, error)
 	GetRefreshTokenTTL() time.Duration
 }
 
@@ -103,8 +104,8 @@ func New(
 	}
 }
 
-func (s *service) generateTokens(ctx context.Context, userAgent string, userID int) (*auth.Tokens, error) {
-	accessToken, err := s.tokenManager.GenerateToken(userID)
+func (s *service) generateTokens(ctx context.Context, userAgent string, user jwtauth.UserClaims) (*auth.Tokens, error) {
+	accessToken, err := s.tokenManager.GenerateToken(user)
 	if err != nil {
 		s.logger.Error("unexpected error when generating jwt token", zap.Error(err))
 
@@ -114,7 +115,7 @@ func (s *service) generateTokens(ctx context.Context, userAgent string, userID i
 	refreshToken := uuid.New().String()
 	expiryDate := time.Now().Add(s.tokenManager.GetRefreshTokenTTL())
 
-	err = s.authRepository.CreateSession(ctx, refreshToken, userAgent, userID, expiryDate)
+	err = s.authRepository.CreateSession(ctx, refreshToken, userAgent, user.UserID, expiryDate)
 	if err != nil {
 		s.logger.Error("unexpected error when generating refresh token", zap.Error(err))
 		return nil, err
@@ -204,7 +205,14 @@ func (s *service) RegisterVerify(ctx context.Context, dto auth.CodeRequest, user
 			existingUser.IsVerified = true
 		}
 
-		tokens, err = s.generateTokens(ctx, userAgent, existingUser.ID)
+		tokens, err = s.generateTokens(
+			ctx,
+			userAgent,
+			jwtauth.UserClaims{
+				UserID:  existingUser.ID,
+				IsAdmin: existingUser.IsAdmin,
+			},
+		)
 		if err != nil {
 			return err
 		}
@@ -350,7 +358,10 @@ func (s *service) Login(ctx context.Context, dto auth.EmailPasswordRequest, user
 		return nil, ErrInvalidCredentials
 	}
 
-	tokens, err := s.generateTokens(ctx, userAgent, existingUser.ID)
+	tokens, err := s.generateTokens(ctx, userAgent, jwtauth.UserClaims{
+		UserID:  existingUser.ID,
+		IsAdmin: existingUser.IsVerified,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +384,16 @@ func (s *service) Refresh(ctx context.Context, token string, userAgent string) (
 			return err
 		}
 
-		tokens, err = s.generateTokens(ctx, userAgent, userID)
+		existingUser, err := s.userService.GetByID(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		tokens, err = s.generateTokens(
+			ctx,
+			userAgent,
+			jwtauth.UserClaims{UserID: userID, IsAdmin: existingUser.IsAdmin},
+		)
 		if err != nil {
 			return err
 		}

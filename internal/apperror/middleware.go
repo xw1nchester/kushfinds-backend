@@ -20,6 +20,8 @@ func Middleware(h handler) http.HandlerFunc {
 					w.WriteHeader(http.StatusNotFound)
 				} else if errors.Is(err, ErrUnauthorized) {
 					w.WriteHeader(http.StatusUnauthorized)
+				} else if errors.Is(err, ErrForbidden) {
+					w.WriteHeader(http.StatusForbidden)
 				} else {
 					w.WriteHeader(http.StatusBadRequest)
 				}

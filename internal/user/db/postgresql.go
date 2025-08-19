@@ -264,6 +264,23 @@ func (r *repository) CheckUsernameIsAvailable(ctx context.Context, username stri
 	return false, nil
 }
 
+func (r *repository) IsAdmin(ctx context.Context, userID int) (bool, error) {
+	const query = `SELECT is_admin FROM users WHERE id = $1`
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var isAdmin bool
+	err := r.client.QueryRow(ctx, query, userID).Scan(&isAdmin)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, ErrUserNotFound
+		}
+		return false, err
+	}
+
+	return isAdmin, nil
+}
+
 func (r *repository) SetProfileInfo(ctx context.Context, data User) (*User, error) {
 	query := `
 		UPDATE users
@@ -364,7 +381,8 @@ func (r *repository) GetUserBusinessProfile(ctx context.Context, userID int) (*B
 			r.id,
 			r.name,
 			bp.email,
-			bp.phone_number
+			bp.phone_number,
+			bp.is_verified
         FROM business_profiles bp
 		LEFT JOIN business_industries bi ON bp.business_industry_id = bi.id
 		LEFT JOIN countries c ON bp.country_id = c.id
@@ -389,6 +407,7 @@ func (r *repository) GetUserBusinessProfile(ctx context.Context, userID int) (*B
 		&businessProfile.Region.Name,
 		&businessProfile.Email,
 		&businessProfile.PhoneNumber,
+		&businessProfile.IsVerified,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrBusinessProfileNotFound
@@ -402,8 +421,8 @@ func (r *repository) GetUserBusinessProfile(ctx context.Context, userID int) (*B
 
 func (r *repository) UpdateBusinessProfile(ctx context.Context, data BusinessProfile) (*BusinessProfile, error) {
 	query := `
-        INSERT INTO business_profiles (user_id, business_industry_id, business_name, country_id, state_id, region_id, email, phone_number)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO business_profiles (user_id, business_industry_id, business_name, country_id, state_id, region_id, email, phone_number, is_verified)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (user_id)
 		DO UPDATE SET
 			business_industry_id = EXCLUDED.business_industry_id,
@@ -412,7 +431,8 @@ func (r *repository) UpdateBusinessProfile(ctx context.Context, data BusinessPro
 			state_id = EXCLUDED.state_id,
 			region_id = EXCLUDED.region_id,
 			email = EXCLUDED.email,
-			phone_number = EXCLUDED.phone_number;
+			phone_number = EXCLUDED.phone_number,
+			is_verified = EXCLUDED.is_verified;
     `
 
 	logging.LogSQLQuery(r.logger, query)
@@ -428,6 +448,7 @@ func (r *repository) UpdateBusinessProfile(ctx context.Context, data BusinessPro
 		data.Region.ID,
 		data.Email,
 		data.PhoneNumber,
+		data.IsVerified,
 	); err != nil {
 		return nil, err
 	}

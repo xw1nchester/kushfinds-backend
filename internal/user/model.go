@@ -43,6 +43,7 @@ type BusinessProfile struct {
 	Region           region.Region    `json:"region"`
 	Email            string           `json:"email"`
 	PhoneNumber      string           `json:"phoneNumber"`
+	IsVerified       bool             `json:"isVerified"`
 }
 
 type BusinessProfileResponse struct {

@@ -17,7 +17,7 @@ type StoreRequest struct {
 	BrandID           types.IntOrString `json:"brandId" validate:"required"`
 	Name              string            `json:"name" validate:"required"`
 	Banner            string            `json:"banner" validate:"required"`
-	Description       string            `json:"Description" validate:"required"`
+	Description       string            `json:"description" validate:"required"`
 	CountryID         types.IntOrString `json:"countryId" validate:"required"`
 	StateID           types.IntOrString `json:"stateId" validate:"required"`
 	RegionID          types.IntOrString `json:"regionId" validate:"required"`

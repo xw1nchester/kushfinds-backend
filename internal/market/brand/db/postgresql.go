@@ -199,7 +199,47 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 	return &br, nil
 }
 
-// TODO: вынести создание связанных штатов, секций
+func (r *repository) createBrandRelatedEntities(
+	ctx context.Context,
+	tx pgx.Tx,
+	brandID int,
+	data brand.Brand,
+) error {
+	if len(data.States) > 0 {
+		insertStateQuery := `
+            INSERT INTO brands_states (brand_id, state_id)
+            VALUES ($1, $2)
+        `
+		batch := &pgx.Batch{}
+		for _, s := range data.States {
+			logging.LogSQLQuery(r.logger, insertStateQuery)
+			batch.Queue(insertStateQuery, brandID, s.ID)
+		}
+		br := tx.SendBatch(ctx, batch)
+		if err := br.Close(); err != nil {
+			return err
+		}
+	}
+
+	if len(data.MarketSubSections) > 0 {
+		insertMarketSubSectionQuery := `
+            INSERT INTO brands_market_sub_sections (brand_id, market_section_id)
+            VALUES ($1, $2)
+        `
+		batch := &pgx.Batch{}
+		for _, ms := range data.MarketSubSections {
+			logging.LogSQLQuery(r.logger, insertMarketSubSectionQuery)
+			batch.Queue(insertMarketSubSectionQuery, brandID, ms.ID)
+		}
+		br := tx.SendBatch(ctx, batch)
+		if err := br.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *repository) CreateBrand(ctx context.Context, data brand.Brand) (*brand.Brand, error) {
 	tx, err := r.client.Begin(ctx)
 	if err != nil {
@@ -232,36 +272,8 @@ func (r *repository) CreateBrand(ctx context.Context, data brand.Brand) (*brand.
 		return nil, err
 	}
 
-	if len(data.States) > 0 {
-		insertStateQuery := `
-            INSERT INTO brands_states (brand_id, state_id)
-            VALUES ($1, $2)
-        `
-		batch := &pgx.Batch{}
-		for _, s := range data.States {
-			logging.LogSQLQuery(r.logger, insertStateQuery)
-			batch.Queue(insertStateQuery, brandID, s.ID)
-		}
-		br := tx.SendBatch(ctx, batch)
-		if err = br.Close(); err != nil {
-			return nil, err
-		}
-	}
-
-	if len(data.MarketSubSections) > 0 {
-		insertMarketSubSectionQuery := `
-            INSERT INTO brands_market_sub_sections (brand_id, market_section_id)
-            VALUES ($1, $2)
-        `
-		batch := &pgx.Batch{}
-		for _, ms := range data.MarketSubSections {
-			logging.LogSQLQuery(r.logger, insertMarketSubSectionQuery)
-			batch.Queue(insertMarketSubSectionQuery, brandID, ms.ID)
-		}
-		br := tx.SendBatch(ctx, batch)
-		if err = br.Close(); err != nil {
-			return nil, err
-		}
+	if err = r.createBrandRelatedEntities(ctx, tx, brandID, data); err != nil {
+		return nil, err
 	}
 
 	if err = tx.Commit(ctx); err != nil {
@@ -343,36 +355,8 @@ func (r *repository) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.
 		return nil, err
 	}
 
-	if len(data.States) > 0 {
-		insertStateQuery := `
-            INSERT INTO brands_states (brand_id, state_id)
-            VALUES ($1, $2)
-        `
-		batch := &pgx.Batch{}
-		for _, s := range data.States {
-			logging.LogSQLQuery(r.logger, insertStateQuery)
-			batch.Queue(insertStateQuery, brandID, s.ID)
-		}
-		br := tx.SendBatch(ctx, batch)
-		if err = br.Close(); err != nil {
-			return nil, err
-		}
-	}
-
-	if len(data.MarketSubSections) > 0 {
-		insertMarketSubSectionQuery := `
-            INSERT INTO brands_market_sub_sections (brand_id, market_section_id)
-            VALUES ($1, $2)
-        `
-		batch := &pgx.Batch{}
-		for _, ms := range data.MarketSubSections {
-			logging.LogSQLQuery(r.logger, insertMarketSubSectionQuery)
-			batch.Queue(insertMarketSubSectionQuery, brandID, ms.ID)
-		}
-		br := tx.SendBatch(ctx, batch)
-		if err = br.Close(); err != nil {
-			return nil, err
-		}
+	if err = r.createBrandRelatedEntities(ctx, tx, brandID, data); err != nil {
+		return nil, err
 	}
 
 	if err = tx.Commit(ctx); err != nil {

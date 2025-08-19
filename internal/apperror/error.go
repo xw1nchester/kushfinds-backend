@@ -11,6 +11,7 @@ import (
 var (
 	ErrNotFound     = NewAppError("not found")
 	ErrUnauthorized = NewAppError("unauthorized")
+	ErrForbidden    = NewAppError("forbidden")
 	ErrDecodeBody   = NewAppError("failed to decode request body")
 )
 

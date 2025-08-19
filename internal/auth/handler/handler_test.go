@@ -14,7 +14,7 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
 	"github.com/xw1nchester/kushfinds-backend/internal/auth"
 	mockauthservice "github.com/xw1nchester/kushfinds-backend/internal/auth/handler/mocks"
-	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	jwtmiddleware "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/middleware"
 	"github.com/xw1nchester/kushfinds-backend/internal/user"
 	"go.uber.org/mock/gomock"
 )
@@ -529,7 +529,7 @@ func TestRegisterProfileHandler(t *testing.T) {
 
 			ctx := req.Context()
 			if tt.args.userID != nil {
-				ctx = context.WithValue(ctx, jwtauth.UserIDContextKey{}, tt.args.userID)
+				ctx = context.WithValue(ctx, jwtmiddleware.UserIDContextKey{}, tt.args.userID)
 			}
 			req = req.WithContext(ctx)
 
@@ -655,7 +655,7 @@ func TestRegisterPasswordHandler(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/register/password", bodyReader)
 
-			ctx := context.WithValue(req.Context(), jwtauth.UserIDContextKey{}, 1)
+			ctx := context.WithValue(req.Context(), jwtmiddleware.UserIDContextKey{}, 1)
 			req = req.WithContext(ctx)
 
 			rec := httptest.NewRecorder()

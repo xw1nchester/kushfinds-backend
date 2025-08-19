@@ -119,6 +119,37 @@ definitions:
       name:
         type: string
     type: object
+  handler.AdminBusinessProfileRequest:
+    properties:
+      businessIndustryId:
+        type: integer
+      businessName:
+        maxLength: 30
+        minLength: 3
+        type: string
+      countryId:
+        type: integer
+      email:
+        type: string
+      isVerified:
+        description: 'TODO: если установить validate:"required" и отправить false,
+          то не пройдет валидацию'
+        type: boolean
+      phoneNumber:
+        type: string
+      regionId:
+        type: integer
+      stateId:
+        type: integer
+    required:
+    - businessIndustryId
+    - businessName
+    - countryId
+    - email
+    - phoneNumber
+    - regionId
+    - stateId
+    type: object
   handler.BrandRequest:
     properties:
       banner:
@@ -282,6 +313,125 @@ definitions:
       name:
         type: string
     type: object
+  store.Store:
+    properties:
+      banner:
+        type: string
+      brand:
+        $ref: '#/definitions/brand.BrandSummary'
+      country:
+        $ref: '#/definitions/country.Country'
+      deliveryDistance:
+        type: integer
+      deliveryPrice:
+        type: integer
+      description:
+        type: string
+      email:
+        type: string
+      house:
+        type: string
+      id:
+        type: integer
+      isPublished:
+        type: boolean
+      minimalOrderPrice:
+        type: integer
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      pictures:
+        items:
+          type: string
+        type: array
+      postCode:
+        type: string
+      region:
+        $ref: '#/definitions/region.Region'
+      state:
+        $ref: '#/definitions/state.State'
+      storeType:
+        $ref: '#/definitions/store.StoreType'
+      street:
+        type: string
+    type: object
+  store.StoreType:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  storehandler.StoreRequest:
+    properties:
+      banner:
+        type: string
+      brandId:
+        type: integer
+      countryId:
+        type: integer
+      deliveryDistance:
+        type: integer
+      deliveryPrice:
+        type: integer
+      description:
+        type: string
+      email:
+        type: string
+      house:
+        type: string
+      minimalOrderPrice:
+        type: integer
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      pictures:
+        items:
+          type: string
+        type: array
+      postCode:
+        type: string
+      regionId:
+        type: integer
+      stateId:
+        type: integer
+      storeTypeId:
+        type: integer
+      street:
+        type: string
+    required:
+    - banner
+    - brandId
+    - countryId
+    - deliveryDistance
+    - deliveryPrice
+    - description
+    - email
+    - house
+    - minimalOrderPrice
+    - name
+    - phoneNumber
+    - pictures
+    - postCode
+    - regionId
+    - stateId
+    - storeTypeId
+    - street
+    type: object
+  storehandler.StoreResponse:
+    properties:
+      store:
+        $ref: '#/definitions/store.Store'
+    type: object
+  storehandler.StoreTypesResponse:
+    properties:
+      storeTypes:
+        items:
+          $ref: '#/definitions/store.StoreType'
+        type: array
+    type: object
   upload.File:
     properties:
       contentType:
@@ -308,6 +458,8 @@ definitions:
         $ref: '#/definitions/country.Country'
       email:
         type: string
+      isVerified:
+        type: boolean
       phoneNumber:
         type: string
       region:
@@ -365,6 +517,32 @@ info:
   title: Kushfinds API
   version: "1.0"
 paths:
+  /admin/users/{user_id}/business:
+    patch:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.AdminBusinessProfileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.BusinessProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - admin users
   /auth/login/email:
     post:
       parameters:
@@ -733,6 +911,32 @@ paths:
       - ApiKeyAuth: []
       tags:
       - market
+  /me/stores:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/storehandler.StoreRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storehandler.StoreResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
   /ping:
     get:
       responses:
@@ -800,6 +1004,25 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - upload
+  /store/types:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storehandler.StoreTypesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
   /upload:
     post:
       consumes:

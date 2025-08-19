@@ -9,7 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
 	"github.com/xw1nchester/kushfinds-backend/internal/auth"
-	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	jwtmiddleware "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/middleware"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
 	"github.com/xw1nchester/kushfinds-backend/internal/user"
 	"go.uber.org/zap"
@@ -181,7 +181,7 @@ func (h *handler) registerProfileHandler(w http.ResponseWriter, r *http.Request)
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	user, err := h.service.SaveProfileInfo(r.Context(), userID, dto)
 	if err != nil {
@@ -210,7 +210,7 @@ func (h *handler) registerPasswordHandler(w http.ResponseWriter, r *http.Request
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	return h.service.SavePassword(r.Context(), userID, dto)
 }

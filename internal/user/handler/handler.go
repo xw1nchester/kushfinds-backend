@@ -3,12 +3,13 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
-	"github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	jwtmiddleware "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/middleware"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
@@ -24,6 +25,7 @@ type Service interface {
 	UpdateProfile(ctx context.Context, data user.User) (*user.User, error)
 	GetUserBusinessProfile(ctx context.Context, userID int) (*user.BusinessProfile, error)
 	UpdateBusinessProfile(ctx context.Context, data user.BusinessProfile) (*user.BusinessProfile, error)
+	AdminUpdateBusinessProfile(ctx context.Context, adminID int, data user.BusinessProfile) (*user.BusinessProfile, error)
 }
 
 type handler struct {
@@ -54,6 +56,13 @@ func (h *handler) Register(router chi.Router) {
 			})
 		})
 	})
+
+	// TODO: может вынести?
+	router.Route("/admin/users", func(adminUserRouter chi.Router) {
+		adminUserRouter.Use(h.authMiddleware)
+
+		adminUserRouter.Patch("/{user_id}/business", apperror.Middleware(h.adminUpdateBusinessProfileHandler))
+	})
 }
 
 // @Security	ApiKeyAuth
@@ -62,7 +71,7 @@ func (h *handler) Register(router chi.Router) {
 // @Failure	400,500	{object}	apperror.AppError
 // @Router		/users/me [get]
 func (h *handler) userHandler(w http.ResponseWriter, r *http.Request) error {
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	existingUser, err := h.service.GetByID(r.Context(), userID)
 	if err != nil {
@@ -91,7 +100,7 @@ func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) e
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	var countryData *country.Country
 	if dto.CountryID != nil {
@@ -142,7 +151,7 @@ func (h *handler) updateProfileHandler(w http.ResponseWriter, r *http.Request) e
 // @Failure	400,500	{object}	apperror.AppError
 // @Router		/users/business [get]
 func (h *handler) getBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	businessProfile, err := h.service.GetUserBusinessProfile(r.Context(), userID)
 	if err != nil {
@@ -171,7 +180,7 @@ func (h *handler) updateBusinessProfileHandler(w http.ResponseWriter, r *http.Re
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	businessProfile, err := h.service.UpdateBusinessProfile(
 		r.Context(),
@@ -192,6 +201,62 @@ func (h *handler) updateBusinessProfileHandler(w http.ResponseWriter, r *http.Re
 			},
 			Email:       dto.Email,
 			PhoneNumber: dto.PhoneNumber,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	render.JSON(w, r, user.BusinessProfileResponse{BusinessProfile: businessProfile})
+
+	return nil
+}
+
+// @Security	ApiKeyAuth
+// @Tags		admin users
+// @Param		request	body		AdminBusinessProfileRequest	true	"request body"
+// @Success	200		{object}	user.BusinessProfileResponse
+// @Failure	400,500	{object}	apperror.AppError
+// @Router		/admin/users/{user_id}/business [patch]
+func (h *handler) adminUpdateBusinessProfileHandler(w http.ResponseWriter, r *http.Request) error {
+	userID, err := strconv.Atoi(chi.URLParam(r, "user_id"))
+	if err != nil {
+		return apperror.NewAppError("user_id should be positive integer")
+	}
+
+	var dto AdminBusinessProfileRequest
+	if err := render.DecodeJSON(r.Body, &dto); err != nil {
+		h.logger.Error(apperror.ErrDecodeBody.Error(), zap.Error(err))
+		return apperror.ErrDecodeBody
+	}
+
+	if err := validate.Struct(dto); err != nil {
+		return apperror.NewValidationErr(err.(validator.ValidationErrors))
+	}
+
+	adminID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
+
+	businessProfile, err := h.service.AdminUpdateBusinessProfile(
+		r.Context(),
+		adminID,
+		user.BusinessProfile{
+			UserID: userID,
+			BusinessIndustry: user.BusinessIndustry{
+				ID: int(dto.BusinessIndustryID),
+			},
+			BusinessName: dto.BusinessName,
+			Country: country.Country{
+				ID: int(dto.CountryID),
+			},
+			State: state.State{
+				ID: int(dto.StateID),
+			},
+			Region: region.Region{
+				ID: int(dto.RegionID),
+			},
+			Email:       dto.Email,
+			PhoneNumber: dto.PhoneNumber,
+			IsVerified:  dto.IsVerified,
 		},
 	)
 	if err != nil {

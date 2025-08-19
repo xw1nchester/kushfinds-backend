@@ -39,6 +39,7 @@ type BusinessProfile struct {
 	Region           region.Region
 	Email            string
 	PhoneNumber      string
+	IsVerified       bool
 }
 
 func (bp *BusinessProfile) ToDomain() *user.BusinessProfile {
@@ -57,5 +58,6 @@ func (bp *BusinessProfile) ToDomain() *user.BusinessProfile {
 		Region:       bp.Region,
 		Email:        bp.Email,
 		PhoneNumber:  bp.PhoneNumber,
+		IsVerified:   bp.IsVerified,
 	}
 }

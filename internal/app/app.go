@@ -15,6 +15,7 @@ import (
 	authdb "github.com/xw1nchester/kushfinds-backend/internal/auth/db"
 	authhandler "github.com/xw1nchester/kushfinds-backend/internal/auth/handler"
 	"github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	jwtmiddleware "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/middleware"
 	"github.com/xw1nchester/kushfinds-backend/internal/auth/password"
 	authservice "github.com/xw1nchester/kushfinds-backend/internal/auth/service"
 	codedb "github.com/xw1nchester/kushfinds-backend/internal/code/db"
@@ -147,7 +148,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 			log,
 		)
 
-		authMiddleware := jwtauth.NewMiddleware(log, tokenManager)
+		authMiddleware := jwtmiddleware.NewMiddleware(log, tokenManager)
 
 		industryRepository := industrydb.New(pgClient, log)
 
@@ -236,8 +237,8 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		brandHandler.Register(r)
 
 		storeHandler := storehandler.New(
-			storeService, 
-			authMiddleware, 
+			storeService,
+			authMiddleware,
 			cfg.HTTPServer.StaticURL,
 			log,
 		)

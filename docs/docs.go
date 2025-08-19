@@ -15,6 +15,49 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/users/{user_id}/business": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "admin users"
+                ],
+                "parameters": [
+                    {
+                        "description": "request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.AdminBusinessProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.BusinessProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login/email": {
             "post": {
                 "tags": [
@@ -611,6 +654,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/me/stores": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "market"
+                ],
+                "parameters": [
+                    {
+                        "description": "request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storehandler.StoreRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storehandler.StoreResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "tags": [
@@ -703,6 +789,38 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/store/types": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "market"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storehandler.StoreTypesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/apperror.AppError"
                         }
@@ -1088,6 +1206,47 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.AdminBusinessProfileRequest": {
+            "type": "object",
+            "required": [
+                "businessIndustryId",
+                "businessName",
+                "countryId",
+                "email",
+                "phoneNumber",
+                "regionId",
+                "stateId"
+            ],
+            "properties": {
+                "businessIndustryId": {
+                    "type": "integer"
+                },
+                "businessName": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "minLength": 3
+                },
+                "countryId": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "isVerified": {
+                    "description": "TODO: если установить validate:\"required\" и отправить false, то не пройдет валидацию",
+                    "type": "boolean"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "regionId": {
+                    "type": "integer"
+                },
+                "stateId": {
+                    "type": "integer"
+                }
+            }
+        },
         "handler.BrandRequest": {
             "type": "object",
             "required": [
@@ -1330,6 +1489,179 @@ const docTemplate = `{
                 }
             }
         },
+        "store.Store": {
+            "type": "object",
+            "properties": {
+                "banner": {
+                    "type": "string"
+                },
+                "brand": {
+                    "$ref": "#/definitions/brand.BrandSummary"
+                },
+                "country": {
+                    "$ref": "#/definitions/country.Country"
+                },
+                "deliveryDistance": {
+                    "type": "integer"
+                },
+                "deliveryPrice": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "house": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isPublished": {
+                    "type": "boolean"
+                },
+                "minimalOrderPrice": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "pictures": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "postCode": {
+                    "type": "string"
+                },
+                "region": {
+                    "$ref": "#/definitions/region.Region"
+                },
+                "state": {
+                    "$ref": "#/definitions/state.State"
+                },
+                "storeType": {
+                    "$ref": "#/definitions/store.StoreType"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
+        "store.StoreType": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "storehandler.StoreRequest": {
+            "type": "object",
+            "required": [
+                "banner",
+                "brandId",
+                "countryId",
+                "deliveryDistance",
+                "deliveryPrice",
+                "description",
+                "email",
+                "house",
+                "minimalOrderPrice",
+                "name",
+                "phoneNumber",
+                "pictures",
+                "postCode",
+                "regionId",
+                "stateId",
+                "storeTypeId",
+                "street"
+            ],
+            "properties": {
+                "banner": {
+                    "type": "string"
+                },
+                "brandId": {
+                    "type": "integer"
+                },
+                "countryId": {
+                    "type": "integer"
+                },
+                "deliveryDistance": {
+                    "type": "integer"
+                },
+                "deliveryPrice": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "house": {
+                    "type": "string"
+                },
+                "minimalOrderPrice": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "pictures": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "postCode": {
+                    "type": "string"
+                },
+                "regionId": {
+                    "type": "integer"
+                },
+                "stateId": {
+                    "type": "integer"
+                },
+                "storeTypeId": {
+                    "type": "integer"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
+        "storehandler.StoreResponse": {
+            "type": "object",
+            "properties": {
+                "store": {
+                    "$ref": "#/definitions/store.Store"
+                }
+            }
+        },
+        "storehandler.StoreTypesResponse": {
+            "type": "object",
+            "properties": {
+                "storeTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.StoreType"
+                    }
+                }
+            }
+        },
         "upload.File": {
             "type": "object",
             "properties": {
@@ -1369,6 +1701,9 @@ const docTemplate = `{
                 },
                 "email": {
                     "type": "string"
+                },
+                "isVerified": {
+                    "type": "boolean"
                 },
                 "phoneNumber": {
                     "type": "string"

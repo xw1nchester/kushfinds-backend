@@ -21,3 +21,9 @@ type BusinessProfileRequest struct {
 	Email              string            `json:"email" validate:"required,email"`
 	PhoneNumber        string            `json:"phoneNumber" validate:"required"`
 }
+
+type AdminBusinessProfileRequest struct {
+	BusinessProfileRequest
+	// TODO: если установить validate:"required" и отправить false, то не пройдет валидацию
+	IsVerified bool `json:"isVerified"`
+}

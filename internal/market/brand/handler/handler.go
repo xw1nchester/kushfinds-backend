@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
-	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
+	jwtmiddleware "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt/middleware"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/brand"
 	"go.uber.org/zap"
@@ -74,7 +74,7 @@ func (h *handler) createBrandHandler(w http.ResponseWriter, r *http.Request) err
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	createdBrand, err := h.service.CreateBrand(r.Context(), *dto.ToDomain(userID))
 	if err != nil {
@@ -92,7 +92,7 @@ func (h *handler) createBrandHandler(w http.ResponseWriter, r *http.Request) err
 // @Failure	400,500	{object}	apperror.AppError
 // @Router		/me/brands [get]
 func (h *handler) getUserBrandsHandler(w http.ResponseWriter, r *http.Request) error {
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	brands, err := h.service.GetUserBrands(r.Context(), userID)
 	if err != nil {
@@ -115,7 +115,7 @@ func (h *handler) getUserBrandHandler(w http.ResponseWriter, r *http.Request) er
 		return apperror.NewAppError("id should be positive integer")
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	brand, err := h.service.GetUserBrand(r.Context(), brandID, userID)
 	if err != nil {
@@ -149,7 +149,7 @@ func (h *handler) updateBrandHandler(w http.ResponseWriter, r *http.Request) err
 		return apperror.NewValidationErr(err.(validator.ValidationErrors))
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 	brandInfo := dto.ToDomain(userID)
 	brandInfo.ID = brandID
 
@@ -174,7 +174,7 @@ func (h *handler) deleteBrandHandler(w http.ResponseWriter, r *http.Request) err
 		return apperror.NewAppError("id should be positive integer")
 	}
 
-	userID := r.Context().Value(jwtauth.UserIDContextKey{}).(int)
+	userID := r.Context().Value(jwtmiddleware.UserIDContextKey{}).(int)
 
 	return h.service.DeleteBrand(r.Context(), brandID, userID)
 }

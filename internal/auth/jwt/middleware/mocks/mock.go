@@ -12,6 +12,7 @@ package mockjwt
 import (
 	reflect "reflect"
 
+	jwtauth "github.com/xw1nchester/kushfinds-backend/internal/auth/jwt"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,10 +41,10 @@ func (m *MockJwtManager) EXPECT() *MockJwtManagerMockRecorder {
 }
 
 // ParseToken mocks base method.
-func (m *MockJwtManager) ParseToken(tokenStr string) (int, error) {
+func (m *MockJwtManager) ParseToken(tokenStr string) (*jwtauth.UserClaims, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParseToken", tokenStr)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(*jwtauth.UserClaims)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

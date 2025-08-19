@@ -17,17 +17,22 @@ func NewManager(jwtConfig config.JWT) *manager {
 	}
 }
 
-type CustomClaims struct {
-	jwt.RegisteredClaims
-	UserID int `json:"user_id"`
+type UserClaims struct {
+	UserID  int  `json:"user_id"`
+	IsAdmin bool `json:"is_admin"`
 }
 
-func (m *manager) GenerateToken(userID int) (string, error) {
-	customClaims := CustomClaims{
+type customClaims struct {
+	jwt.RegisteredClaims
+	UserClaims
+}
+
+func (m *manager) GenerateToken(user UserClaims) (string, error) {
+	customClaims := customClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(m.jwtConfig.AccessTokenTTL)),
 		},
-		userID,
+		user,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
@@ -39,18 +44,18 @@ func (tm *manager) GetRefreshTokenTTL() time.Duration {
 	return tm.jwtConfig.RefreshTokenTTL
 }
 
-func (tm *manager) ParseToken(tokenStr string) (int, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(token *jwt.Token) (any, error) {
+func (tm *manager) ParseToken(tokenStr string) (*UserClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &customClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte(tm.jwtConfig.Secret), nil
 	})
 	if err != nil || !token.Valid {
-		return 0, err
+		return nil, err
 	}
 
-	claims, ok := token.Claims.(*CustomClaims)
+	claims, ok := token.Claims.(*customClaims)
 	if !ok {
-		return 0, err
+		return nil, err
 	}
 
-	return claims.UserID, nil
+	return &claims.UserClaims, nil
 }
