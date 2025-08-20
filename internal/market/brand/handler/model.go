@@ -70,9 +70,9 @@ type BrandsSummaryResponse struct {
 	Brands []brand.BrandSummary `json:"brands"`
 }
 
-func NewBrandsSummaryResponse(bs []brand.BrandSummary, staticURL string) BrandsSummaryResponse {
-	for i := range bs {
-		bs[i].Logo = staticURL + "/" + bs[i].Logo
+func NewBrandsSummaryResponse(elements []brand.BrandSummary, staticURL string) BrandsSummaryResponse {
+	for i := range elements {
+		elements[i].Logo = staticURL + "/" + elements[i].Logo
 	}
-	return BrandsSummaryResponse{Brands: bs}
+	return BrandsSummaryResponse{Brands: elements}
 }

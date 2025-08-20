@@ -655,6 +655,36 @@ const docTemplate = `{
             }
         },
         "/me/stores": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "market"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storehandler.StoresSummaryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -674,6 +704,38 @@ const docTemplate = `{
                             "$ref": "#/definitions/storehandler.StoreRequest"
                         }
                     }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storehandler.StoreResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/stores/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "market"
                 ],
                 "responses": {
                     "200": {
@@ -1554,6 +1616,23 @@ const docTemplate = `{
                 }
             }
         },
+        "store.StoreSummary": {
+            "type": "object",
+            "properties": {
+                "banner": {
+                    "type": "string"
+                },
+                "brand": {
+                    "$ref": "#/definitions/brand.BrandSummary"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "store.StoreType": {
             "type": "object",
             "properties": {
@@ -1658,6 +1737,17 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/store.StoreType"
+                    }
+                }
+            }
+        },
+        "storehandler.StoresSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "stores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.StoreSummary"
                     }
                 }
             }

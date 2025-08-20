@@ -67,3 +67,14 @@ func NewStoreResponse(s store.Store, staticURL string) StoreResponse {
 	}
 	return StoreResponse{Store: s}
 }
+
+type StoresSummaryResponse struct {
+	Stores []store.StoreSummary `json:"stores"`
+}
+
+func NewStoresSummaryResponse(elements []store.StoreSummary, staticURL string) StoresSummaryResponse {
+	for i := range elements {
+		elements[i].Banner = staticURL + "/" + elements[i].Banner
+	}
+	return StoresSummaryResponse{Stores: elements}
+}

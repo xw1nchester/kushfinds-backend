@@ -18,6 +18,8 @@ type Repository interface {
 	GetStoreTypeByID(ctx context.Context, id int) (*store.StoreType, error)
 
 	CreateStore(ctx context.Context, data store.Store) (*store.Store, error)
+	GetUserStores(ctx context.Context, userID int) ([]store.StoreSummary, error)
+	GetStoreByID(ctx context.Context, id int) (*store.Store, error)
 }
 
 type UserService interface {
@@ -125,4 +127,34 @@ func (s *service) CreateStore(ctx context.Context, data store.Store) (*store.Sto
 	}
 
 	return createdStore, nil
+}
+
+func (s *service) GetUserStores(ctx context.Context, userID int) ([]store.StoreSummary, error) {
+	brands, err := s.repository.GetUserStores(ctx, userID)
+	if err != nil {
+		s.logger.Error("unexpected error when fetching user stores", zap.Error(err))
+
+		return nil, err
+	}
+
+	return brands, nil
+}
+
+func (s *service) GetUserStore(ctx context.Context, storeID, userID int) (*store.Store, error) {
+	store, err := s.repository.GetStoreByID(ctx, storeID)
+	if err != nil {
+		if errors.Is(err, storedb.ErrStoreNotFound) {
+			return nil, apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when fetching store by id", zap.Error(err))
+
+		return nil, err
+	}
+
+	if store.UserID != userID {
+		return nil, apperror.ErrNotFound
+	}
+
+	return store, nil
 }

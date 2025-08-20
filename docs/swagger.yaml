@@ -356,6 +356,17 @@ definitions:
       street:
         type: string
     type: object
+  store.StoreSummary:
+    properties:
+      banner:
+        type: string
+      brand:
+        $ref: '#/definitions/brand.BrandSummary'
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   store.StoreType:
     properties:
       id:
@@ -430,6 +441,13 @@ definitions:
       storeTypes:
         items:
           $ref: '#/definitions/store.StoreType'
+        type: array
+    type: object
+  storehandler.StoresSummaryResponse:
+    properties:
+      stores:
+        items:
+          $ref: '#/definitions/store.StoreSummary'
         type: array
     type: object
   upload.File:
@@ -912,6 +930,24 @@ paths:
       tags:
       - market
   /me/stores:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storehandler.StoresSummaryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
     post:
       parameters:
       - description: request body
@@ -920,6 +956,25 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/storehandler.StoreRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storehandler.StoreResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - market
+  /me/stores/{id}:
+    get:
       responses:
         "200":
           description: OK

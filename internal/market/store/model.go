@@ -34,3 +34,10 @@ type Store struct {
 	Pictures          []string           `json:"pictures"`
 	IsPublished       bool               `json:"isPublished"`
 }
+
+type StoreSummary struct {
+	ID     int                `json:"id"`
+	Name   string             `json:"name"`
+	Banner string             `json:"banner"`
+	Brand  brand.BrandSummary `json:"brand"`
+}

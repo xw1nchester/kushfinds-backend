@@ -81,6 +81,7 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 	query := `
 		SELECT
 			s.id,
+			b.user_id,
 			b.id,
 			b.name,
 			b.logo,
@@ -118,6 +119,7 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 	var store store.Store
 	if err := r.client.QueryRow(ctx, query, id).Scan(
 		&store.ID,
+		&store.UserID,
 		&store.Brand.ID,
 		&store.Brand.Name,
 		&store.Brand.Logo,
@@ -241,4 +243,46 @@ func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.
 	}
 
 	return r.GetStoreByID(ctx, id)
+}
+
+func (r *repository) GetUserStores(ctx context.Context, userID int) ([]store.StoreSummary, error) {
+	query := `
+		SELECT s.id, s.name, s.banner, b.id, b.name, b.logo
+		FROM stores s
+		LEFT JOIN brands b ON s.brand_id = b.id
+		WHERE b.user_id=$1
+	`
+
+	logging.LogSQLQuery(r.logger, query)
+
+	rows, err := r.client.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	stores := make([]store.StoreSummary, 0)
+	for rows.Next() {
+		var store store.StoreSummary
+
+		err := rows.Scan(
+			&store.ID,
+			&store.Name,
+			&store.Banner,
+			&store.Brand.ID,
+			&store.Brand.Name,
+			&store.Brand.Logo,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %v", err)
+		}
+
+		stores = append(stores, store)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("row error: %v", err)
+	}
+
+	return stores, nil
 }
