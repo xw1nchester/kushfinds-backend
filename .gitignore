@@ -4,3 +4,4 @@ tmp
 config/*
 !config/example.yml
 minio-data
+.DS_Store

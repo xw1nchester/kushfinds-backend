@@ -11,3 +11,4 @@ Dockerfile
 Makefile
 README.md
 minio-data
+.DS_Store
