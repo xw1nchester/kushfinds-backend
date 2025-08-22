@@ -201,8 +201,8 @@ func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.
 	defer tx.Rollback(ctx)
 
 	query := `
-        INSERT INTO stores (brand_id, name, banner, description, country_id, state_id, region_id, street, house, post_code, email, phone_number, store_type_id, delivery_price, minimal_order_price, delivery_distance)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        INSERT INTO stores (brand_id, name, banner, description, country_id, state_id, region_id, street, house, post_code, email, phone_number, store_type_id, delivery_price, minimal_order_price, delivery_distance, is_published)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING id
     `
 
@@ -228,6 +228,7 @@ func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.
 		data.DeliveryPrice,
 		data.MinimalOrderPrice,
 		data.DeliveryDistance,
+		data.IsPublished,
 	).Scan(&id); err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ type Repository interface {
 }
 
 type UserService interface {
-	CheckBusinessProfileExists(ctx context.Context, userID int) error
+	CheckBusinessProfileExists(ctx context.Context, userID int, requireVerified bool) error
 }
 
 type BrandService interface {
@@ -84,7 +84,11 @@ func (s *service) GetAllStoreTypes(ctx context.Context) ([]store.StoreType, erro
 }
 
 func (s *service) validateStoreData(ctx context.Context, data store.Store) error {
-	if err := s.userService.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
+	if err := s.userService.CheckBusinessProfileExists(
+		ctx,
+		data.UserID,
+		data.IsPublished,
+	); err != nil {
 		return err
 	}
 

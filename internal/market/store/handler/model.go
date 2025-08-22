@@ -31,6 +31,7 @@ type StoreRequest struct {
 	MinimalOrderPrice types.IntOrString `json:"minimalOrderPrice" validate:"required"`
 	DeliveryDistance  types.IntOrString `json:"deliveryDistance" validate:"required"`
 	Pictures          []string          `json:"pictures" validate:"required"`
+	IsPublished       *bool             `json:"isPublished" validate:"required"`
 }
 
 func (sr *StoreRequest) ToDomain(userID int) *store.Store {
@@ -53,6 +54,7 @@ func (sr *StoreRequest) ToDomain(userID int) *store.Store {
 		MinimalOrderPrice: int(sr.MinimalOrderPrice),
 		DeliveryDistance:  int(sr.DeliveryDistance),
 		Pictures:          sr.Pictures,
+		IsPublished:       *sr.IsPublished,
 	}
 }
 

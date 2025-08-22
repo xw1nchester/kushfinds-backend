@@ -29,7 +29,7 @@ type Repository interface {
 	UpdateProfile(ctx context.Context, user db.User) (*db.User, error)
 	GetUserBusinessProfile(ctx context.Context, userID int) (*db.BusinessProfile, error)
 	UpdateBusinessProfile(ctx context.Context, data db.BusinessProfile) (*db.BusinessProfile, error)
-	CheckBusinessProfileExists(ctx context.Context, userID int) error
+	CheckBusinessProfileExists(ctx context.Context, userID int, requireVerified bool) error
 }
 
 type CountryService interface {
@@ -324,8 +324,12 @@ func (s *service) UpdateBusinessProfile(ctx context.Context, data user.BusinessP
 	return businessProfile.ToDomain(), nil
 }
 
-func (s *service) CheckBusinessProfileExists(ctx context.Context, userID int) error {
-	err := s.repository.CheckBusinessProfileExists(ctx, userID)
+func (s *service) CheckBusinessProfileExists(
+	ctx context.Context,
+	userID int,
+	requireVerified bool,
+) error {
+	err := s.repository.CheckBusinessProfileExists(ctx, userID, requireVerified)
 	if err != nil {
 		if errors.Is(err, db.ErrBusinessProfileNotFound) {
 			return ErrBusinessProfileNotFound
@@ -359,7 +363,7 @@ func (s *service) AdminUpdateBusinessProfile(
 		return nil, apperror.ErrForbidden
 	}
 
-	if err := s.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
+	if err := s.CheckBusinessProfileExists(ctx, data.UserID, false); err != nil {
 		return nil, err
 	}
 

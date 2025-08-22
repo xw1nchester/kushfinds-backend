@@ -456,11 +456,19 @@ func (r *repository) UpdateBusinessProfile(ctx context.Context, data BusinessPro
 	return r.GetUserBusinessProfile(ctx, data.UserID)
 }
 
-func (r *repository) CheckBusinessProfileExists(ctx context.Context, userID int) error {
+func (r *repository) CheckBusinessProfileExists(
+	ctx context.Context,
+	userID int,
+	requireVerified bool,
+) error {
 	query := `
         SELECT user_id FROM business_profiles
 		WHERE user_id=$1
     `
+
+	if requireVerified {
+		query += " AND is_verified=true"
+	}
 
 	logging.LogSQLQuery(r.logger, query)
 

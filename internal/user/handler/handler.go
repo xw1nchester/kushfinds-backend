@@ -256,7 +256,7 @@ func (h *handler) adminUpdateBusinessProfileHandler(w http.ResponseWriter, r *ht
 			},
 			Email:       dto.Email,
 			PhoneNumber: dto.PhoneNumber,
-			IsVerified:  dto.IsVerified,
+			IsVerified:  *dto.IsVerified,
 		},
 	)
 	if err != nil {

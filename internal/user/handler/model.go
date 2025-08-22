@@ -24,6 +24,5 @@ type BusinessProfileRequest struct {
 
 type AdminBusinessProfileRequest struct {
 	BusinessProfileRequest
-	// TODO: если установить validate:"required" и отправить false, то не пройдет валидацию
-	IsVerified bool `json:"isVerified"`
+	IsVerified *bool `json:"isVerified" validate:"required"`
 }

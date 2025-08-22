@@ -20,6 +20,8 @@ type Brand struct {
 	PhoneNumber       string                        `json:"phoneNumber"`
 	Logo              string                        `json:"logo"`
 	Banner            string                        `json:"banner"`
+	Documents         []string                      `json:"documents"`
+	IsPublished       bool                          `json:"isPublished"`
 	CreatedAt         time.Time                     `json:"createdAt"`
 	UpdatedAt         time.Time                     `json:"updatedAt"`
 }

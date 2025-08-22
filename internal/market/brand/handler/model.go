@@ -9,6 +9,11 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/pkg/utils"
 )
 
+type BrandSocial struct {
+	ID  types.IntOrString `json:"id" validate:"required"`
+	Url string            `json:"url" validate:"required,url"`
+}
+
 type BrandRequest struct {
 	CountryID           types.IntOrString   `json:"country" validate:"required"`
 	MarketSection       types.IntOrString   `json:"marketSection" validate:"required"`
@@ -19,6 +24,9 @@ type BrandRequest struct {
 	PhoneNumber         string              `json:"phoneNumber" validate:"required"`
 	Logo                string              `json:"logo" validate:"required"`
 	Banner              string              `json:"banner" validate:"required"`
+	Documents           []string            `json:"documents" validate:"required"`
+	Socials             []BrandSocial       `json:"socials" validate:"required,dive"`
+	IsPublished         *bool               `json:"isPublished" validate:"required"`
 }
 
 func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
@@ -38,6 +46,8 @@ func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
 		)
 	}
 
+	// TODO: socials
+
 	return &brand.Brand{
 		UserID: userID,
 		Country: country.Country{
@@ -53,6 +63,8 @@ func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
 		PhoneNumber:       br.PhoneNumber,
 		Logo:              br.Logo,
 		Banner:            br.Banner,
+		Documents:         br.Documents,
+		IsPublished:       *br.IsPublished,
 	}
 }
 
@@ -63,6 +75,9 @@ type BrandResponse struct {
 func NewBrandResponse(b brand.Brand, staticURL string) BrandResponse {
 	b.Logo = staticURL + "/" + b.Logo
 	b.Banner = staticURL + "/" + b.Banner
+	for i := range b.Documents {
+		b.Documents[i] = staticURL + "/" + b.Documents[i]
+	}
 	return BrandResponse{Brand: b}
 }
 

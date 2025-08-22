@@ -60,7 +60,7 @@ func (s *service) GetByID(ctx context.Context, id int) (*marketsection.MarketSec
 	}, nil
 }
 
-func (s *service) CheckStatesExist(ctx context.Context, marketSectionIDs []int) error {
+func (s *service) CheckMarketSectionsExist(ctx context.Context, marketSectionIDs []int) error {
 	err := s.repository.CheckMarketSectionsExist(ctx, marketSectionIDs)
 	if err != nil {
 		if errors.Is(err, db.ErrMarketSectionNotFound) {

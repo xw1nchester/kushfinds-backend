@@ -26,7 +26,7 @@ type Repository interface {
 }
 
 type UserService interface {
-	CheckBusinessProfileExists(ctx context.Context, userID int) error
+	CheckBusinessProfileExists(ctx context.Context, userID int, requireVerified bool) error
 }
 
 type CountryService interface {
@@ -38,7 +38,7 @@ type StateService interface {
 }
 
 type MarketSectionService interface {
-	CheckStatesExist(ctx context.Context, marketSectionIDs []int) error
+	CheckMarketSectionsExist(ctx context.Context, marketSectionIDs []int) error
 }
 
 type service struct {
@@ -88,7 +88,11 @@ func (s *service) validateBrandData(ctx context.Context, data brand.Brand, isUpd
 		}
 	}
 
-	if err := s.userService.CheckBusinessProfileExists(ctx, data.UserID); err != nil {
+	if err := s.userService.CheckBusinessProfileExists(
+		ctx,
+		data.UserID,
+		data.IsPublished,
+	); err != nil {
 		return err
 	}
 
@@ -113,7 +117,7 @@ func (s *service) validateBrandData(ctx context.Context, data brand.Brand, isUpd
 		}
 	}
 
-	if err := s.marketSectionService.CheckStatesExist(ctx, marketSectionIDs); err != nil {
+	if err := s.marketSectionService.CheckMarketSectionsExist(ctx, marketSectionIDs); err != nil {
 		return err
 	}
 

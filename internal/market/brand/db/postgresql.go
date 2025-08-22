@@ -110,6 +110,7 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 			b.phone_number,
 			b.logo,
 			b.banner,
+			b.is_published,
 			b.created_at,
 			b.updated_at
 		FROM brands b
@@ -133,6 +134,7 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 		&br.PhoneNumber,
 		&br.Logo,
 		&br.Banner,
+		&br.IsPublished,
 		&br.CreatedAt,
 		&br.UpdatedAt,
 	); err != nil {
@@ -196,6 +198,32 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 		return nil, err
 	}
 
+	docsQuery := `
+		SELECT url
+		FROM brands_documents
+		WHERE brand_id = $1
+	`
+
+	logging.LogSQLQuery(r.logger, docsQuery)
+
+	rows, err = r.client.Query(ctx, docsQuery, brandID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	br.Documents = make([]string, 0)
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		br.Documents = append(br.Documents, url)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &br, nil
 }
 
@@ -237,6 +265,22 @@ func (r *repository) createBrandRelatedEntities(
 		}
 	}
 
+	if len(data.Documents) > 0 {
+		insertDocsQuery := `
+            INSERT INTO brands_documents (brand_id, url)
+            VALUES ($1, $2)
+        `
+		batch := &pgx.Batch{}
+		for _, url := range data.Documents {
+			logging.LogSQLQuery(r.logger, insertDocsQuery)
+			batch.Queue(insertDocsQuery, brandID, url)
+		}
+		br := tx.SendBatch(ctx, batch)
+		if err := br.Close(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -249,8 +293,8 @@ func (r *repository) CreateBrand(ctx context.Context, data brand.Brand) (*brand.
 	defer tx.Rollback(ctx)
 
 	query := `
-        INSERT INTO brands (user_id, country_id, market_section_id, name, email, phone_number, logo, banner)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO brands (user_id, country_id, market_section_id, name, email, phone_number, logo, banner, is_published)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id
     `
 
@@ -268,6 +312,7 @@ func (r *repository) CreateBrand(ctx context.Context, data brand.Brand) (*brand.
 		data.PhoneNumber,
 		data.Logo,
 		data.Banner,
+		data.IsPublished,
 	).Scan(&brandID); err != nil {
 		return nil, err
 	}
@@ -320,6 +365,7 @@ func (r *repository) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.
 			phone_number=$7,
 			logo=$8,
 			banner=$9,
+			is_published=$10,
 			updated_at=NOW()
         WHERE id=$1 AND user_id=$2
         RETURNING id
@@ -339,6 +385,7 @@ func (r *repository) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.
 		data.PhoneNumber,
 		data.Logo,
 		data.Banner,
+		data.IsPublished,
 	).Scan(&brandID); err != nil {
 		return nil, err
 	}
@@ -352,6 +399,12 @@ func (r *repository) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.
 	deleteBrandsMarketSubSectionsQuery := "DELETE FROM brands_market_sub_sections WHERE brand_id=$1"
 	logging.LogSQLQuery(r.logger, deleteBrandsMarketSubSectionsQuery)
 	if _, err = tx.Exec(ctx, deleteBrandsMarketSubSectionsQuery, brandID); err != nil {
+		return nil, err
+	}
+
+	deleteBrandsDocaQuery := "DELETE FROM brands_documents WHERE brand_id=$1"
+	logging.LogSQLQuery(r.logger, deleteBrandsDocaQuery)
+	if _, err = tx.Exec(ctx, deleteBrandsDocaQuery, brandID); err != nil {
 		return nil, err
 	}
 
