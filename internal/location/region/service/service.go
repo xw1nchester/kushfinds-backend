@@ -14,6 +14,7 @@ type Repository interface {
 	GetAll(ctx context.Context) ([]region.Region, error)
 	GetByID(ctx context.Context, id int) (*region.Region, error)
 	GetAllByStateID(ctx context.Context, countryID int) ([]region.Region, error)
+	CheckLocationExists(ctx context.Context, regionID, stateID, countryID int) error
 }
 
 type service struct {
@@ -58,4 +59,17 @@ func (s *service) GetAllByStateID(ctx context.Context, id int) ([]region.Region,
 	}
 
 	return regions, nil
+}
+
+func (s *service) CheckLocationExists(ctx context.Context, regionID, stateID, countryID int) error {
+	err := s.repository.CheckLocationExists(ctx, regionID, stateID, countryID)
+	if err != nil {
+		if errors.Is(err, db.ErrLocationNotFound) {
+			return apperror.ErrNotFound
+		}
+
+		s.logger.Error("unexpected error when checking location exists", zap.Error(err))
+	}
+
+	return err
 }

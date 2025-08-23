@@ -61,10 +61,7 @@ func (s *service) GetByID(ctx context.Context, id int) (*country.Country, error)
 		return nil, err
 	}
 
-	return &country.Country{
-		ID:   existingCountry.ID,
-		Name: existingCountry.Name,
-	}, nil
+	return existingCountry, nil
 }
 
 func (s *service) GetCountryStates(ctx context.Context, id int) ([]state.State, error) {

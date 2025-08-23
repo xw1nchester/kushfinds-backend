@@ -11,6 +11,7 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/logging"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/brand"
 	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/social"
 	"go.uber.org/zap"
 )
 
@@ -224,6 +225,38 @@ func (r *repository) GetUserBrand(ctx context.Context, brandID, userID int) (*br
 		return nil, err
 	}
 
+	socialsQuery := `
+		SELECT s.id, s.name, s.icon, bs.url
+		FROM brands_socials bs
+		JOIN socials s ON bs.social_id = s.id
+		WHERE bs.brand_id = $1
+	`
+
+	logging.LogSQLQuery(r.logger, socialsQuery)
+
+	rows, err = r.client.Query(ctx, socialsQuery, brandID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	br.Socials = make([]social.EntitySocial, 0)
+	for rows.Next() {
+		var social social.EntitySocial
+		if err := rows.Scan(
+			&social.ID,
+			&social.Name,
+			&social.Icon,
+			&social.Url,
+		); err != nil {
+			return nil, err
+		}
+		br.Socials = append(br.Socials, social)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &br, nil
 }
 
@@ -274,6 +307,22 @@ func (r *repository) createBrandRelatedEntities(
 		for _, url := range data.Documents {
 			logging.LogSQLQuery(r.logger, insertDocsQuery)
 			batch.Queue(insertDocsQuery, brandID, url)
+		}
+		br := tx.SendBatch(ctx, batch)
+		if err := br.Close(); err != nil {
+			return err
+		}
+	}
+
+	if len(data.Socials) > 0 {
+		insertSocialsQuery := `
+            INSERT INTO brands_socials (brand_id, social_id, url)
+            VALUES ($1, $2, $3)
+        `
+		batch := &pgx.Batch{}
+		for _, s := range data.Socials {
+			logging.LogSQLQuery(r.logger, insertSocialsQuery)
+			batch.Queue(insertSocialsQuery, brandID, s.ID, s.Url)
 		}
 		br := tx.SendBatch(ctx, batch)
 		if err := br.Close(); err != nil {
@@ -390,21 +439,27 @@ func (r *repository) UpdateBrand(ctx context.Context, data brand.Brand) (*brand.
 		return nil, err
 	}
 
-	deleteBrandsStatesQuery := "DELETE FROM brands_states WHERE brand_id=$1"
-	logging.LogSQLQuery(r.logger, deleteBrandsStatesQuery)
-	if _, err = tx.Exec(ctx, deleteBrandsStatesQuery, brandID); err != nil {
+	deleteStatesQuery := "DELETE FROM brands_states WHERE brand_id=$1"
+	logging.LogSQLQuery(r.logger, deleteStatesQuery)
+	if _, err = tx.Exec(ctx, deleteStatesQuery, brandID); err != nil {
 		return nil, err
 	}
 
-	deleteBrandsMarketSubSectionsQuery := "DELETE FROM brands_market_sub_sections WHERE brand_id=$1"
-	logging.LogSQLQuery(r.logger, deleteBrandsMarketSubSectionsQuery)
-	if _, err = tx.Exec(ctx, deleteBrandsMarketSubSectionsQuery, brandID); err != nil {
+	deleteMarketSubSectionsQuery := "DELETE FROM brands_market_sub_sections WHERE brand_id=$1"
+	logging.LogSQLQuery(r.logger, deleteMarketSubSectionsQuery)
+	if _, err = tx.Exec(ctx, deleteMarketSubSectionsQuery, brandID); err != nil {
 		return nil, err
 	}
 
-	deleteBrandsDocaQuery := "DELETE FROM brands_documents WHERE brand_id=$1"
-	logging.LogSQLQuery(r.logger, deleteBrandsDocaQuery)
-	if _, err = tx.Exec(ctx, deleteBrandsDocaQuery, brandID); err != nil {
+	deleteDocsQuery := "DELETE FROM brands_documents WHERE brand_id=$1"
+	logging.LogSQLQuery(r.logger, deleteDocsQuery)
+	if _, err = tx.Exec(ctx, deleteDocsQuery, brandID); err != nil {
+		return nil, err
+	}
+
+	deleteSocialsQuery := "DELETE FROM brands_socials WHERE brand_id=$1"
+	logging.LogSQLQuery(r.logger, deleteSocialsQuery)
+	if _, err = tx.Exec(ctx, deleteSocialsQuery, brandID); err != nil {
 		return nil, err
 	}
 

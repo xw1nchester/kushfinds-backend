@@ -38,7 +38,11 @@ type StateService interface {
 }
 
 type MarketSectionService interface {
-	CheckMarketSectionsExist(ctx context.Context, marketSectionIDs []int) error
+	CheckMarketSectionsExist(ctx context.Context, IDs []int) error
+}
+
+type SocialService interface {
+	CheckSocialsExist(ctx context.Context, IDs []int) error
 }
 
 type service struct {
@@ -47,6 +51,7 @@ type service struct {
 	countryService       CountryService
 	stateService         StateService
 	marketSectionService MarketSectionService
+	socialService        SocialService
 	logger               *zap.Logger
 }
 
@@ -56,6 +61,7 @@ func New(
 	countryService CountryService,
 	stateService StateService,
 	marketSectionService MarketSectionService,
+	socialService SocialService,
 	logger *zap.Logger,
 ) *service {
 	return &service{
@@ -64,6 +70,7 @@ func New(
 		countryService:       countryService,
 		stateService:         stateService,
 		marketSectionService: marketSectionService,
+		socialService:        socialService,
 		logger:               logger,
 	}
 }
@@ -118,6 +125,15 @@ func (s *service) validateBrandData(ctx context.Context, data brand.Brand, isUpd
 	}
 
 	if err := s.marketSectionService.CheckMarketSectionsExist(ctx, marketSectionIDs); err != nil {
+		return err
+	}
+
+	socialIDs := make([]int, len(data.Socials))
+	for i, s := range data.Socials {
+		socialIDs[i] = s.ID
+	}
+
+	if err := s.socialService.CheckSocialsExist(ctx, socialIDs); err != nil {
 		return err
 	}
 

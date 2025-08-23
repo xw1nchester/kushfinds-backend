@@ -8,6 +8,7 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/industry"
 	"github.com/xw1nchester/kushfinds-backend/internal/user"
 	"github.com/xw1nchester/kushfinds-backend/internal/user/db"
 	"go.uber.org/zap"
@@ -32,6 +33,10 @@ type Repository interface {
 	CheckBusinessProfileExists(ctx context.Context, userID int, requireVerified bool) error
 }
 
+type IndustryService interface {
+	GetByID(ctx context.Context, id int) (*industry.Industry, error)
+}
+
 type CountryService interface {
 	GetByID(ctx context.Context, id int) (*country.Country, error)
 }
@@ -42,29 +47,33 @@ type StateService interface {
 
 type RegionService interface {
 	GetByID(ctx context.Context, id int) (*region.Region, error)
+	CheckLocationExists(ctx context.Context, regionID, stateID, countryID int) error
 }
 
 type service struct {
-	repository     Repository
-	countryService CountryService
-	stateService   StateService
-	regionService  RegionService
-	logger         *zap.Logger
+	repository      Repository
+	industryService IndustryService
+	countryService  CountryService
+	stateService    StateService
+	regionService   RegionService
+	logger          *zap.Logger
 }
 
 func New(
 	repository Repository,
+	industryService IndustryService,
 	countryService CountryService,
 	stateService StateService,
 	regionService RegionService,
 	logger *zap.Logger,
 ) *service {
 	return &service{
-		repository:     repository,
-		countryService: countryService,
-		stateService:   stateService,
-		regionService:  regionService,
-		logger:         logger,
+		repository:      repository,
+		industryService: industryService,
+		countryService:  countryService,
+		stateService:    stateService,
+		regionService:   regionService,
+		logger:          logger,
 	}
 }
 
@@ -273,16 +282,16 @@ func (s *service) GetUserBusinessProfile(ctx context.Context, userID int) (*user
 }
 
 func (s *service) validateBusinessProfileData(ctx context.Context, data user.BusinessProfile) error {
-	// TODO: check business industry id
-	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
+	if _, err := s.industryService.GetByID(ctx, data.BusinessIndustry.ID); err != nil {
 		return err
 	}
 
-	if _, err := s.stateService.GetByID(ctx, data.State.ID); err != nil {
-		return err
-	}
-
-	if _, err := s.regionService.GetByID(ctx, data.Region.ID); err != nil {
+	if err := s.regionService.CheckLocationExists(
+		ctx,
+		data.Region.ID,
+		data.State.ID,
+		data.Country.ID,
+	); err != nil {
 		return err
 	}
 

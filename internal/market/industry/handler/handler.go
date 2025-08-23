@@ -9,7 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
-	"github.com/xw1nchester/kushfinds-backend/internal/industry"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/industry"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +37,7 @@ func (h *handler) Register(router chi.Router) {
 	})
 }
 
-// @Tags		industry
+// @Tags		market
 // @Success	200		{object}	IndustriesResponse
 // @Failure	400,500	{object}	apperror.AppError
 // @Router		/industries [get]

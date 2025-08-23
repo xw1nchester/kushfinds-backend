@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xw1nchester/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/social"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/store"
 	"go.uber.org/zap"
 )
@@ -104,7 +105,9 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 			s.delivery_price,
 			s.minimal_order_price,
 			s.delivery_distance,
-			s.is_published
+			s.is_published,
+			s.created_at,
+			s.updated_at
 		FROM stores s
 		LEFT JOIN brands b ON s.brand_id = b.id
 		LEFT JOIN countries c ON s.country_id = c.id
@@ -143,6 +146,8 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 		&store.MinimalOrderPrice,
 		&store.DeliveryDistance,
 		&store.IsPublished,
+		&store.CreatedAt,
+		&store.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrStoreNotFound
@@ -176,21 +181,80 @@ func (r *repository) GetStoreByID(ctx context.Context, id int) (*store.Store, er
 		return nil, err
 	}
 
+	socialsQuery := `
+		SELECT s.id, s.name, s.icon, ss.url
+		FROM stores_socials ss
+		JOIN socials s ON ss.social_id = s.id
+		WHERE ss.store_id = $1
+	`
+
+	logging.LogSQLQuery(r.logger, socialsQuery)
+
+	rows, err = r.client.Query(ctx, socialsQuery, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	store.Socials = make([]social.EntitySocial, 0)
+	for rows.Next() {
+		var social social.EntitySocial
+		if err := rows.Scan(
+			&social.ID,
+			&social.Name,
+			&social.Icon,
+			&social.Url,
+		); err != nil {
+			return nil, err
+		}
+		store.Socials = append(store.Socials, social)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &store, nil
 }
 
-func (r *repository) createStorePictures(ctx context.Context, tx pgx.Tx, storeID int, pictures []string) error {
-	query := `
+func (r *repository) createStoreRelatedEnitities(
+	ctx context.Context,
+	tx pgx.Tx,
+	storeID int,
+	data store.Store,
+) error {
+	if len(data.Pictures) > 0 {
+		query := `
 		INSERT INTO stores_pictures (store_id, url)
 		VALUES ($1, $2)
 	`
-	batch := &pgx.Batch{}
-	for _, url := range pictures {
-		logging.LogSQLQuery(r.logger, query)
-		batch.Queue(query, storeID, url)
+		batch := &pgx.Batch{}
+		for _, url := range data.Pictures {
+			logging.LogSQLQuery(r.logger, query)
+			batch.Queue(query, storeID, url)
+		}
+		br := tx.SendBatch(ctx, batch)
+		if err := br.Close(); err != nil {
+			return err
+		}
 	}
-	br := tx.SendBatch(ctx, batch)
-	return br.Close()
+
+	if len(data.Socials) > 0 {
+		insertSocialsQuery := `
+            INSERT INTO stores_socials (store_id, social_id, url)
+            VALUES ($1, $2, $3)
+        `
+		batch := &pgx.Batch{}
+		for _, s := range data.Socials {
+			logging.LogSQLQuery(r.logger, insertSocialsQuery)
+			batch.Queue(insertSocialsQuery, storeID, s.ID, s.Url)
+		}
+		br := tx.SendBatch(ctx, batch)
+		if err := br.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.Store, error) {
@@ -234,7 +298,7 @@ func (r *repository) CreateStore(ctx context.Context, data store.Store) (*store.
 	}
 
 	if len(data.Pictures) > 0 {
-		if err = r.createStorePictures(ctx, tx, id, data.Pictures); err != nil {
+		if err = r.createStoreRelatedEnitities(ctx, tx, id, data); err != nil {
 			return nil, err
 		}
 	}

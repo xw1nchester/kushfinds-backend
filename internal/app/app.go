@@ -21,9 +21,6 @@ import (
 	codedb "github.com/xw1nchester/kushfinds-backend/internal/code/db"
 	codeservice "github.com/xw1nchester/kushfinds-backend/internal/code/service"
 	"github.com/xw1nchester/kushfinds-backend/internal/config"
-	industrydb "github.com/xw1nchester/kushfinds-backend/internal/industry/db"
-	industryhandler "github.com/xw1nchester/kushfinds-backend/internal/industry/handler"
-	industryservice "github.com/xw1nchester/kushfinds-backend/internal/industry/service"
 	countrydb "github.com/xw1nchester/kushfinds-backend/internal/location/country/db"
 	countryhandler "github.com/xw1nchester/kushfinds-backend/internal/location/country/handler"
 	countryservice "github.com/xw1nchester/kushfinds-backend/internal/location/country/service"
@@ -35,9 +32,15 @@ import (
 	branddb "github.com/xw1nchester/kushfinds-backend/internal/market/brand/db"
 	brandhandler "github.com/xw1nchester/kushfinds-backend/internal/market/brand/handler"
 	brandservice "github.com/xw1nchester/kushfinds-backend/internal/market/brand/service"
+	industrydb "github.com/xw1nchester/kushfinds-backend/internal/market/industry/db"
+	industryhandler "github.com/xw1nchester/kushfinds-backend/internal/market/industry/handler"
+	industryservice "github.com/xw1nchester/kushfinds-backend/internal/market/industry/service"
 	marketsectiondb "github.com/xw1nchester/kushfinds-backend/internal/market/section/db"
 	marketsectionhandler "github.com/xw1nchester/kushfinds-backend/internal/market/section/handler"
 	marketsectionservice "github.com/xw1nchester/kushfinds-backend/internal/market/section/service"
+	socialdb "github.com/xw1nchester/kushfinds-backend/internal/market/social/db"
+	socialhandler "github.com/xw1nchester/kushfinds-backend/internal/market/social/handler"
+	socialservice "github.com/xw1nchester/kushfinds-backend/internal/market/social/service"
 	storedb "github.com/xw1nchester/kushfinds-backend/internal/market/store/db"
 	storehandler "github.com/xw1nchester/kushfinds-backend/internal/market/store/handler"
 	storeservice "github.com/xw1nchester/kushfinds-backend/internal/market/store/service"
@@ -105,6 +108,10 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		userRepository := userdb.New(pgClient, log)
 
+		industryRepository := industrydb.New(pgClient, log)
+
+		industryService := industryservice.New(industryRepository, log)
+
 		regionRepository := regiondb.New(pgClient, log)
 
 		regionService := regionservice.New(regionRepository, log)
@@ -119,6 +126,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		userService := userservice.New(
 			userRepository,
+			industryService,
 			countryService,
 			stateService,
 			regionService,
@@ -150,13 +158,13 @@ func New(log *zap.Logger, cfg config.Config) *App {
 
 		authMiddleware := jwtmiddleware.NewMiddleware(log, tokenManager)
 
-		industryRepository := industrydb.New(pgClient, log)
-
-		industryService := industryservice.New(industryRepository, log)
-
 		marketSectionRepository := marketsectiondb.New(pgClient, log)
 
 		marketSectionService := marketsectionservice.New(marketSectionRepository, log)
+
+		socialRepository := socialdb.New(pgClient, log)
+
+		socialService := socialservice.New(socialRepository, log)
 
 		brandRepository := branddb.New(pgClient, log)
 
@@ -166,6 +174,7 @@ func New(log *zap.Logger, cfg config.Config) *App {
 			countryService,
 			stateService,
 			marketSectionService,
+			socialService,
 			log,
 		)
 
@@ -175,9 +184,8 @@ func New(log *zap.Logger, cfg config.Config) *App {
 			storeRepository,
 			userService,
 			brandService,
-			countryService,
-			stateService,
 			regionService,
+			socialService,
 			log,
 		)
 
@@ -246,6 +254,15 @@ func New(log *zap.Logger, cfg config.Config) *App {
 		log.Info("register store handlers")
 
 		storeHandler.Register(r)
+
+		socialHandler := socialhandler.New(
+			socialService,
+			log,
+		)
+
+		log.Info("register social handlers")
+
+		socialHandler.Register(r)
 	})
 
 	srv := &http.Server{

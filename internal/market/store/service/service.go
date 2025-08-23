@@ -5,9 +5,6 @@ import (
 	"errors"
 
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
-	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
-	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
-	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/store"
 	storedb "github.com/xw1nchester/kushfinds-backend/internal/market/store/db"
 	"go.uber.org/zap"
@@ -30,45 +27,38 @@ type BrandService interface {
 	CheckBrandExists(ctx context.Context, brandID, userID int) error
 }
 
-type CountryService interface {
-	GetByID(ctx context.Context, id int) (*country.Country, error)
-}
-
-type StateService interface {
-	GetByID(ctx context.Context, id int) (*state.State, error)
-}
-
 type RegionService interface {
-	GetByID(ctx context.Context, id int) (*region.Region, error)
+	CheckLocationExists(ctx context.Context, regionID, stateID, countryID int) error
+}
+
+type SocialService interface {
+	CheckSocialsExist(ctx context.Context, IDs []int) error
 }
 
 type service struct {
-	repository     Repository
-	userService    UserService
-	brandService   BrandService
-	countryService CountryService
-	stateService   StateService
-	regionService  RegionService
-	logger         *zap.Logger
+	repository    Repository
+	userService   UserService
+	brandService  BrandService
+	regionService RegionService
+	socialService SocialService
+	logger        *zap.Logger
 }
 
 func New(
 	repository Repository,
 	userService UserService,
 	brandService BrandService,
-	countryService CountryService,
-	stateService StateService,
 	regionService RegionService,
+	socialService SocialService,
 	logger *zap.Logger,
 ) *service {
 	return &service{
-		repository:     repository,
-		userService:    userService,
-		brandService:   brandService,
-		countryService: countryService,
-		stateService:   stateService,
-		regionService:  regionService,
-		logger:         logger,
+		repository:    repository,
+		userService:   userService,
+		brandService:  brandService,
+		regionService: regionService,
+		socialService: socialService,
+		logger:        logger,
 	}
 }
 
@@ -96,15 +86,21 @@ func (s *service) validateStoreData(ctx context.Context, data store.Store) error
 		return err
 	}
 
-	if _, err := s.countryService.GetByID(ctx, data.Country.ID); err != nil {
+	if err := s.regionService.CheckLocationExists(
+		ctx,
+		data.Region.ID,
+		data.State.ID,
+		data.Country.ID,
+	); err != nil {
 		return err
 	}
 
-	if _, err := s.stateService.GetByID(ctx, data.State.ID); err != nil {
-		return err
+	socialIDs := make([]int, len(data.Socials))
+	for i, s := range data.Socials {
+		socialIDs[i] = s.ID
 	}
 
-	if _, err := s.regionService.GetByID(ctx, data.Region.ID); err != nil {
+	if err := s.socialService.CheckSocialsExist(ctx, socialIDs); err != nil {
 		return err
 	}
 

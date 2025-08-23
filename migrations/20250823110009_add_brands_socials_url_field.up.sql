@@ -1,0 +1,2 @@
+ALTER TABLE brands_socials
+  ADD COLUMN IF NOT EXISTS url TEXT NOT NULL;

@@ -6,6 +6,7 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
 	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/social"
 )
 
 type Brand struct {
@@ -21,6 +22,7 @@ type Brand struct {
 	Logo              string                        `json:"logo"`
 	Banner            string                        `json:"banner"`
 	Documents         []string                      `json:"documents"`
+	Socials           []social.EntitySocial         `json:"socials"`
 	IsPublished       bool                          `json:"isPublished"`
 	CreatedAt         time.Time                     `json:"createdAt"`
 	UpdatedAt         time.Time                     `json:"updatedAt"`

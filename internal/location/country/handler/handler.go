@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
 	"github.com/xw1nchester/kushfinds-backend/internal/apperror"
 	"github.com/xw1nchester/kushfinds-backend/internal/handlers"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/country"
@@ -15,8 +14,6 @@ import (
 	statehandler "github.com/xw1nchester/kushfinds-backend/internal/location/state/handler"
 	"go.uber.org/zap"
 )
-
-var validate = validator.New()
 
 type Service interface {
 	GetAll(ctx context.Context) ([]country.Country, error)

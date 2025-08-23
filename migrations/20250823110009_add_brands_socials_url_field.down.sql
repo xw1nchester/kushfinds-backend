@@ -1,0 +1,2 @@
+ALTER TABLE brands_socials
+  DROP COLUMN IF EXISTS url;

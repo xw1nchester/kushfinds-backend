@@ -5,11 +5,12 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/brand"
 	marketsection "github.com/xw1nchester/kushfinds-backend/internal/market/section"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/social"
 	"github.com/xw1nchester/kushfinds-backend/pkg/types"
 	"github.com/xw1nchester/kushfinds-backend/pkg/utils"
 )
 
-type BrandSocial struct {
+type Social struct {
 	ID  types.IntOrString `json:"id" validate:"required"`
 	Url string            `json:"url" validate:"required,url"`
 }
@@ -25,7 +26,7 @@ type BrandRequest struct {
 	Logo                string              `json:"logo" validate:"required"`
 	Banner              string              `json:"banner" validate:"required"`
 	Documents           []string            `json:"documents" validate:"required"`
-	Socials             []BrandSocial       `json:"socials" validate:"required,dive"`
+	Socials             []Social            `json:"socials" validate:"dive"`
 	IsPublished         *bool               `json:"isPublished" validate:"required"`
 }
 
@@ -46,7 +47,17 @@ func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
 		)
 	}
 
-	// TODO: socials
+	var socials []social.EntitySocial
+	seen := map[int]bool{}
+	for _, s := range br.Socials {
+		if !seen[int(s.ID)] {
+			socials = append(
+				socials,
+				social.EntitySocial{ID: int(s.ID), Url: s.Url},
+			)
+			seen[int(s.ID)] = true
+		}
+	}
 
 	return &brand.Brand{
 		UserID: userID,
@@ -64,6 +75,7 @@ func (br *BrandRequest) ToDomain(userID int) *brand.Brand {
 		Logo:              br.Logo,
 		Banner:            br.Banner,
 		Documents:         br.Documents,
+		Socials:           socials,
 		IsPublished:       *br.IsPublished,
 	}
 }

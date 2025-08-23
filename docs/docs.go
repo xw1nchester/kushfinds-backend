@@ -430,7 +430,7 @@ const docTemplate = `{
         "/industries": {
             "get": {
                 "tags": [
-                    "industry"
+                    "market"
                 ],
                 "responses": {
                     "200": {
@@ -769,6 +769,33 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apperror.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/socials": {
+            "get": {
+                "tags": [
+                    "market"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/socialhandler.SocialsResponse"
                         }
                     },
                     "400": {
@@ -1208,11 +1235,20 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "documents": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "email": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
+                },
+                "isPublished": {
+                    "type": "boolean"
                 },
                 "logo": {
                     "type": "string"
@@ -1231,6 +1267,12 @@ const docTemplate = `{
                 },
                 "phoneNumber": {
                     "type": "string"
+                },
+                "socials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/social.EntitySocial"
+                    }
                 },
                 "states": {
                     "type": "array",
@@ -1275,6 +1317,7 @@ const docTemplate = `{
                 "businessName",
                 "countryId",
                 "email",
+                "isVerified",
                 "phoneNumber",
                 "regionId",
                 "stateId"
@@ -1295,7 +1338,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "isVerified": {
-                    "description": "TODO: если установить validate:\"required\" и отправить false, то не пройдет валидацию",
                     "type": "boolean"
                 },
                 "phoneNumber": {
@@ -1314,7 +1356,9 @@ const docTemplate = `{
             "required": [
                 "banner",
                 "country",
+                "documents",
                 "email",
+                "isPublished",
                 "logo",
                 "marketSection",
                 "marketSubSectionIds",
@@ -1329,8 +1373,17 @@ const docTemplate = `{
                 "country": {
                     "type": "integer"
                 },
+                "documents": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "email": {
                     "type": "string"
+                },
+                "isPublished": {
+                    "type": "boolean"
                 },
                 "logo": {
                     "type": "string"
@@ -1349,6 +1402,12 @@ const docTemplate = `{
                 },
                 "phoneNumber": {
                     "type": "string"
+                },
+                "socials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.Social"
+                    }
                 },
                 "stateIds": {
                     "type": "array",
@@ -1496,6 +1555,21 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.Social": {
+            "type": "object",
+            "required": [
+                "id",
+                "url"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "handler.StatesResponse": {
             "type": "object",
             "properties": {
@@ -1540,6 +1614,48 @@ const docTemplate = `{
                 }
             }
         },
+        "social.EntitySocial": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "social.Social": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "socialhandler.SocialsResponse": {
+            "type": "object",
+            "properties": {
+                "socials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/social.Social"
+                    }
+                }
+            }
+        },
         "state.State": {
             "type": "object",
             "properties": {
@@ -1562,6 +1678,9 @@ const docTemplate = `{
                 },
                 "country": {
                     "$ref": "#/definitions/country.Country"
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "deliveryDistance": {
                     "type": "integer"
@@ -1605,6 +1724,12 @@ const docTemplate = `{
                 "region": {
                     "$ref": "#/definitions/region.Region"
                 },
+                "socials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/social.EntitySocial"
+                    }
+                },
                 "state": {
                     "$ref": "#/definitions/state.State"
                 },
@@ -1612,6 +1737,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/store.StoreType"
                 },
                 "street": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -1644,21 +1772,31 @@ const docTemplate = `{
                 }
             }
         },
+        "storehandler.Social": {
+            "type": "object",
+            "required": [
+                "id",
+                "url"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "storehandler.StoreRequest": {
             "type": "object",
             "required": [
-                "banner",
                 "brandId",
                 "countryId",
-                "deliveryDistance",
-                "deliveryPrice",
-                "description",
                 "email",
                 "house",
-                "minimalOrderPrice",
+                "isPublished",
                 "name",
                 "phoneNumber",
-                "pictures",
                 "postCode",
                 "regionId",
                 "stateId",
@@ -1690,6 +1828,9 @@ const docTemplate = `{
                 "house": {
                     "type": "string"
                 },
+                "isPublished": {
+                    "type": "boolean"
+                },
                 "minimalOrderPrice": {
                     "type": "integer"
                 },
@@ -1710,6 +1851,12 @@ const docTemplate = `{
                 },
                 "regionId": {
                     "type": "integer"
+                },
+                "socials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/storehandler.Social"
+                    }
                 },
                 "stateId": {
                     "type": "integer"

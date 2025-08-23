@@ -81,3 +81,25 @@ func (r *repository) GetAllByStateID(ctx context.Context, stateID int) ([]region
 
 	return regions, nil
 }
+
+func (r *repository) CheckLocationExists(ctx context.Context, regionID, stateID, countryID int) error {
+	query := `
+        SELECT r.id
+		FROM regions r
+		JOIN states s ON r.state_id = s.id
+		JOIN countries c ON s.country_id = c.id
+		WHERE r.id = $1
+		AND s.id = $2
+		AND c.id = $3;
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var id int
+	err := r.client.QueryRow(ctx, query, regionID, stateID, countryID).Scan(&id)
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return ErrLocationNotFound
+	}
+
+	return err
+}

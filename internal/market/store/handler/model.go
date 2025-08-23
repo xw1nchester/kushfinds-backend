@@ -5,6 +5,7 @@ import (
 	"github.com/xw1nchester/kushfinds-backend/internal/location/region"
 	"github.com/xw1nchester/kushfinds-backend/internal/location/state"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/brand"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/social"
 	"github.com/xw1nchester/kushfinds-backend/internal/market/store"
 	"github.com/xw1nchester/kushfinds-backend/pkg/types"
 )
@@ -13,11 +14,16 @@ type StoreTypesResponse struct {
 	StoreTypes []store.StoreType `json:"storeTypes"`
 }
 
+type Social struct {
+	ID  types.IntOrString `json:"id" validate:"required"`
+	Url string            `json:"url" validate:"required,url"`
+}
+
 type StoreRequest struct {
 	BrandID           types.IntOrString `json:"brandId" validate:"required"`
 	Name              string            `json:"name" validate:"required"`
-	Banner            string            `json:"banner" validate:"required"`
-	Description       string            `json:"description" validate:"required"`
+	Banner            string            `json:"banner"`
+	Description       string            `json:"description"`
 	CountryID         types.IntOrString `json:"countryId" validate:"required"`
 	StateID           types.IntOrString `json:"stateId" validate:"required"`
 	RegionID          types.IntOrString `json:"regionId" validate:"required"`
@@ -27,14 +33,27 @@ type StoreRequest struct {
 	Email             string            `json:"email" validate:"required,email"`
 	PhoneNumber       string            `json:"phoneNumber" validate:"required"`
 	StoreTypeID       types.IntOrString `json:"storeTypeId" validate:"required"`
-	DeliveryPrice     types.IntOrString `json:"deliveryPrice" validate:"required"`
-	MinimalOrderPrice types.IntOrString `json:"minimalOrderPrice" validate:"required"`
-	DeliveryDistance  types.IntOrString `json:"deliveryDistance" validate:"required"`
-	Pictures          []string          `json:"pictures" validate:"required"`
+	DeliveryPrice     types.IntOrString `json:"deliveryPrice"`
+	MinimalOrderPrice types.IntOrString `json:"minimalOrderPrice"`
+	DeliveryDistance  types.IntOrString `json:"deliveryDistance"`
+	Pictures          []string          `json:"pictures"`
+	Socials           []Social          `json:"socials" validate:"dive"`
 	IsPublished       *bool             `json:"isPublished" validate:"required"`
 }
 
 func (sr *StoreRequest) ToDomain(userID int) *store.Store {
+	var socials []social.EntitySocial
+	seen := map[int]bool{}
+	for _, s := range sr.Socials {
+		if !seen[int(s.ID)] {
+			socials = append(
+				socials,
+				social.EntitySocial{ID: int(s.ID), Url: s.Url},
+			)
+			seen[int(s.ID)] = true
+		}
+	}
+
 	return &store.Store{
 		UserID:            userID,
 		Brand:             brand.BrandSummary{ID: int(sr.BrandID)},
@@ -54,6 +73,7 @@ func (sr *StoreRequest) ToDomain(userID int) *store.Store {
 		MinimalOrderPrice: int(sr.MinimalOrderPrice),
 		DeliveryDistance:  int(sr.DeliveryDistance),
 		Pictures:          sr.Pictures,
+		Socials:           socials,
 		IsPublished:       *sr.IsPublished,
 	}
 }
@@ -63,7 +83,9 @@ type StoreResponse struct {
 }
 
 func NewStoreResponse(s store.Store, staticURL string) StoreResponse {
-	s.Banner = staticURL + "/" + s.Banner
+	if s.Banner != "" {
+		s.Banner = staticURL + "/" + s.Banner
+	}
 	for i := range s.Pictures {
 		s.Pictures[i] = staticURL + "/" + s.Pictures[i]
 	}

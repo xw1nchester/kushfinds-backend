@@ -80,10 +80,16 @@ definitions:
         $ref: '#/definitions/country.Country'
       createdAt:
         type: string
+      documents:
+        items:
+          type: string
+        type: array
       email:
         type: string
       id:
         type: integer
+      isPublished:
+        type: boolean
       logo:
         type: string
       marketSection:
@@ -96,6 +102,10 @@ definitions:
         type: string
       phoneNumber:
         type: string
+      socials:
+        items:
+          $ref: '#/definitions/social.EntitySocial'
+        type: array
       states:
         items:
           $ref: '#/definitions/state.State'
@@ -132,8 +142,6 @@ definitions:
       email:
         type: string
       isVerified:
-        description: 'TODO: если установить validate:"required" и отправить false,
-          то не пройдет валидацию'
         type: boolean
       phoneNumber:
         type: string
@@ -146,6 +154,7 @@ definitions:
     - businessName
     - countryId
     - email
+    - isVerified
     - phoneNumber
     - regionId
     - stateId
@@ -156,8 +165,14 @@ definitions:
         type: string
       country:
         type: integer
+      documents:
+        items:
+          type: string
+        type: array
       email:
         type: string
+      isPublished:
+        type: boolean
       logo:
         type: string
       marketSection:
@@ -170,6 +185,10 @@ definitions:
         type: string
       phoneNumber:
         type: string
+      socials:
+        items:
+          $ref: '#/definitions/handler.Social'
+        type: array
       stateIds:
         items:
           type: integer
@@ -177,7 +196,9 @@ definitions:
     required:
     - banner
     - country
+    - documents
     - email
+    - isPublished
     - logo
     - marketSection
     - marketSubSectionIds
@@ -278,6 +299,16 @@ definitions:
           $ref: '#/definitions/region.Region'
         type: array
     type: object
+  handler.Social:
+    properties:
+      id:
+        type: integer
+      url:
+        type: string
+    required:
+    - id
+    - url
+    type: object
   handler.StatesResponse:
     properties:
       states:
@@ -306,6 +337,33 @@ definitions:
       name:
         type: string
     type: object
+  social.EntitySocial:
+    properties:
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  social.Social:
+    properties:
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  socialhandler.SocialsResponse:
+    properties:
+      socials:
+        items:
+          $ref: '#/definitions/social.Social'
+        type: array
+    type: object
   state.State:
     properties:
       id:
@@ -321,6 +379,8 @@ definitions:
         $ref: '#/definitions/brand.BrandSummary'
       country:
         $ref: '#/definitions/country.Country'
+      createdAt:
+        type: string
       deliveryDistance:
         type: integer
       deliveryPrice:
@@ -349,11 +409,17 @@ definitions:
         type: string
       region:
         $ref: '#/definitions/region.Region'
+      socials:
+        items:
+          $ref: '#/definitions/social.EntitySocial'
+        type: array
       state:
         $ref: '#/definitions/state.State'
       storeType:
         $ref: '#/definitions/store.StoreType'
       street:
+        type: string
+      updatedAt:
         type: string
     type: object
   store.StoreSummary:
@@ -374,6 +440,16 @@ definitions:
       name:
         type: string
     type: object
+  storehandler.Social:
+    properties:
+      id:
+        type: integer
+      url:
+        type: string
+    required:
+    - id
+    - url
+    type: object
   storehandler.StoreRequest:
     properties:
       banner:
@@ -392,6 +468,8 @@ definitions:
         type: string
       house:
         type: string
+      isPublished:
+        type: boolean
       minimalOrderPrice:
         type: integer
       name:
@@ -406,6 +484,10 @@ definitions:
         type: string
       regionId:
         type: integer
+      socials:
+        items:
+          $ref: '#/definitions/storehandler.Social'
+        type: array
       stateId:
         type: integer
       storeTypeId:
@@ -413,18 +495,13 @@ definitions:
       street:
         type: string
     required:
-    - banner
     - brandId
     - countryId
-    - deliveryDistance
-    - deliveryPrice
-    - description
     - email
     - house
-    - minimalOrderPrice
+    - isPublished
     - name
     - phoneNumber
-    - pictures
     - postCode
     - regionId
     - stateId
@@ -807,7 +884,7 @@ paths:
           schema:
             $ref: '#/definitions/apperror.AppError'
       tags:
-      - industry
+      - market
   /market-sections:
     get:
       responses:
@@ -1009,6 +1086,23 @@ paths:
             $ref: '#/definitions/apperror.AppError'
       tags:
       - other
+  /socials:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/socialhandler.SocialsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apperror.AppError'
+      tags:
+      - market
   /states/{state_id}/regions:
     get:
       parameters:

@@ -2,11 +2,13 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xw1nchester/kushfinds-backend/internal/industry"
 	"github.com/xw1nchester/kushfinds-backend/internal/logging"
+	"github.com/xw1nchester/kushfinds-backend/internal/market/industry"
 	"go.uber.org/zap"
 )
 
@@ -53,4 +55,24 @@ func (r *repository) GetAll(ctx context.Context) ([]industry.Industry, error) {
 	}
 
 	return industries, nil
+}
+
+func (r *repository) GetByID(ctx context.Context, id int) (*industry.Industry, error) {
+	query := `
+        SELECT id, name FROM business_industries
+		WHERE id=$1
+    `
+
+	logging.LogSQLQuery(r.logger, query)
+
+	var industry industry.Industry
+	err := r.client.QueryRow(ctx, query, id).Scan(&industry.ID, &industry.Name)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrIndustryNotFound
+		}
+		return nil, err
+	}
+
+	return &industry, nil
 }
